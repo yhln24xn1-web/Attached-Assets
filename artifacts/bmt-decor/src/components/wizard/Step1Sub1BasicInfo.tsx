@@ -184,21 +184,6 @@ export default function Step1Sub1BasicInfo({ defaultValues, onNext }: Props) {
                   {calc.tongDienTich.toFixed(0)}m²
                 </motion.span>
               </span>
-              <span className="text-white/10">|</span>
-              <span className="text-[11px] text-white/30 flex items-center gap-1">
-                <span>💰</span>
-                <span>Ước tính:</span>
-                <motion.span
-                  key={calc.nganSachTrieu}
-                  initial={{ color: "#ff9500" }}
-                  animate={{ color: "#ffffff99" }}
-                  transition={{ duration: 0.8 }}
-                  style={{ color: "rgba(255,149,0,0.75)" }}
-                  className="font-semibold"
-                >
-                  {formatBudget(calc.nganSachTrieu)}
-                </motion.span>
-              </span>
             </motion.div>
           )}
         </AnimatePresence>
