@@ -3,6 +3,7 @@ import cors from "cors";
 import cookieParser from "cookie-parser";
 import pinoHttp from "pino-http";
 import path from "path";
+import fs from "fs";
 import { fileURLToPath } from "url";
 import router from "./routes";
 import { logger } from "./lib/logger";
@@ -46,10 +47,20 @@ app.use("/api", router);
 
 if (process.env.NODE_ENV === "production") {
   const publicPath = path.join(__dirname, "public");
-  app.use(express.static(publicPath));
-  app.get("*", (_req, res) => {
-    res.sendFile(path.join(publicPath, "index.html"));
-  });
+  const indexPath = path.join(publicPath, "index.html");
+  const hasIndex = fs.existsSync(indexPath);
+  logger.info({ publicPath, indexPath, hasIndex, __dirname, cwd: process.cwd() }, "Static file serving config");
+
+  if (hasIndex) {
+    app.use(express.static(publicPath));
+    app.get("/{*splat}", (_req, res) => {
+      res.sendFile(indexPath);
+    });
+  } else {
+    const dirContents = fs.existsSync(publicPath) ? fs.readdirSync(publicPath) : "DIR_NOT_FOUND";
+    const distContents = fs.existsSync(__dirname) ? fs.readdirSync(__dirname) : "DIRNAME_NOT_FOUND";
+    logger.error({ publicPath, dirContents, distContents }, "index.html not found — static serving disabled");
+  }
 }
 
 export default app;
