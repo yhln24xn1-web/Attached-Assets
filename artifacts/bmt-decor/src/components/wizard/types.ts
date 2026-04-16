@@ -62,6 +62,7 @@ export interface WizardData {
   basicInfo: BasicInfoFormValues | null;
   architecture: ArchitectureFormValues | null;
   references: ReferencesFormValues | null;
+  chatRequirements: import("./step2/types").Step2ChatOutput | null;
 }
 
 export interface ArchitectureOption {
