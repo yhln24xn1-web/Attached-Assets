@@ -83,7 +83,7 @@ const STEP_HEADER: Record<InternalStep, { title: string; sub: string; icon: Reac
   3: { title: "Tài liệu tham khảo",   sub: "Tải lên bản vẽ, ảnh hiện trạng và tài liệu",        icon: <Sparkles          className="w-5 h-5" style={{ color: "#ff7b00" }} /> },
   4: { title: "Yêu cầu chi tiết",     sub: "Trò chuyện với AI để xác định thông số xây dựng",    icon: <MessageSquareText className="w-5 h-5" style={{ color: "#ff7b00" }} /> },
   5: { title: "Xác nhận dữ liệu",     sub: "Kiểm tra toàn bộ thông tin trước khi AI sinh layout", icon: <ClipboardList    className="w-5 h-5" style={{ color: "#ff7b00" }} /> },
-  6: { title: "AI Sinh Mặt Bằng",     sub: "AI đang phân tích dữ liệu và tạo layout tối ưu",    icon: <LayoutGrid        className="w-5 h-5" style={{ color: "#ff7b00" }} /> },
+  6: { title: "Bản vẽ kỹ thuật",      sub: "AutoCAD đang phân tích dữ liệu và xử lý bản vẽ",    icon: <LayoutGrid        className="w-5 h-5" style={{ color: "#ff7b00" }} /> },
 };
 
 // ── Step indicator ────────────────────────────────────────────────────────────
@@ -195,7 +195,7 @@ function SubStepDots({ currentInternal }: { currentInternal: InternalStep }) {
           className="rounded-full transition-all duration-300"
           style={{ width: 16, height: 6, background: "#ff7b00" }}
         />
-        <span className="text-[10px]" style={{ color: "rgba(255,255,255,0.35)" }}>Đang sinh layout</span>
+        <span className="text-[10px]" style={{ color: "rgba(255,255,255,0.35)" }}>Đang xử lý bản vẽ kỹ thuật</span>
       </div>
     );
   }
@@ -495,7 +495,7 @@ export default function NewProjectWizard() {
             ? "Bước 2.1 — hoàn tất yêu cầu để AI phân tích"
             : step === 5
             ? "Bước 2.2 — xác nhận trước khi AI sinh layout"
-            : "Bước 3 — AI đang sinh mặt bằng kiến trúc"}
+            : "Bước 3 — AutoCAD đang xử lý bản vẽ kỹ thuật"}
         </p>
       </main>
     </div>
