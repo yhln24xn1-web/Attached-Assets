@@ -1,0 +1,62 @@
+🚀 MASTER PROMPT: BMT DECOR V2 DASHBOARD (LUMINA AI STYLE)
+"Tiếp tục xây dựng hệ thống BMT Decor V2. Hãy triển khai trang Dashboard và các component liên quan dựa trên các yêu cầu kết hợp kỹ thuật và thẩm mỹ cao cấp sau:
+
+1. Quy tắc & Kỹ thuật:
+
+Stack: React + TypeScript + Vite, Tailwind CSS + shadcn/ui, lucide-react, wouter, @tanstack/react-query, framer-motion.
+
+Thư mục:
+
+client/src/pages/Dashboard.tsx
+
+client/src/components/projects/ProjectCard.tsx
+
+client/src/pages/NewProjectWizard.tsx (trang trống để phục vụ route).
+
+Tuyệt đối không dùng any, định nghĩa interface Project đầy đủ (id, title, client, progress, step, width, length, floors, bedrooms, budget, createdAt).
+
+2. Giao diện & Thẩm mỹ (Lumina AI Mix):
+
+Nền tảng: Dark mode hoàn toàn. Nền chính #0a0e16, màu chủ đạo Cam #ff7b00.
+
+Background: Áp dụng hiệu ứng grid-bg (chấm điểm mờ) và Mesh Gradient (khối cầu sáng mờ ở góc) để tạo chiều sâu không gian.
+
+Header Dashboard: Sử dụng hiệu ứng kính mờ dimensional-glass. Tiêu đề 'Dự án' dùng font headline (Plus Jakarta Sans) với hiệu ứng Gradient Trắng-Xám.
+
+Search Bar: Ô input kính mờ, focus sẽ có viền cam phát sáng rực (glow).
+
+3. Thành phần Project Card (Đẳng cấp 3D):
+
+Cấu trúc: Mỗi Card là một thực thể dimensional-glass.
+
+Nội dung:
+
+Tên dự án (In đậm, font headline).
+
+Tiến độ: Progress Bar màu #ff9500 trên nền tối, hiển thị văn bản 'Bước X/7 - [Tên bước]' và % tiến độ.
+
+Thông số: Sử dụng icon Lucide nhỏ cho Diện tích (📏), Tầng/Phòng (🧱), Ngân sách (💰).
+
+Hiệu ứng "Wow" (Framer Motion):
+
+Hover PC: Card phóng to nhẹ (scale 1.02), dịch chuyển lên (y: -5px), và tỏa hào quang cam (glow-hover).
+
+Tap Mobile: Card nhún nhẹ (scale 0.98) tạo phản hồi vật lý.
+
+4. Chức năng Logic:
+
+Data: Sử dụng useQuery gọi GET /api/projects.
+
+Loading: Hiển thị 6 Project Card dạng Skeleton với hiệu ứng mạch đập (pulse) mờ ảo.
+
+Empty State: Nếu không có dự án, hiển thị icon 3D AI mờ kèm thông báo 'Chưa có dự án nào' và nút 'Tạo dự án đầu tiên' (dimensional-gradient).
+
+Search: Lọc dự án theo tên (title) real-time bằng searchQuery state.
+
+5. Điều hướng & Layout:
+
+Responsive: 1 cột (Mobile), 2 cột (Tablet), 3 cột (PC).
+
+Tự động cập nhật App.tsx thêm route /dashboard, /projects/:id, và /projects/new.
+
+Hãy triển khai code sạch, sử dụng các biến CSS đã định nghĩa (primary, surface, dimensional-glass) để đảm bảo tính đồng bộ với trang Đăng nhập."
