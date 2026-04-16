@@ -12,11 +12,11 @@ version = "1.0.0"
 [[services]]
 name = "web"
 paths = [ "/" ]
-localPort = 26090
+localPort = 3500
 
 [services.development]
 run = "pnpm --filter @workspace/bmt-decor run dev"
 
 [services.env]
-PORT = "26090"
+PORT = "3500"
 BASE_PATH = "/"
