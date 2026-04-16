@@ -18,19 +18,38 @@ interface TelegramMessage {
   };
 }
 
+function asTelegramMessage(value: unknown): TelegramMessage | null {
+  if (typeof value !== "object" || value == null) return null;
+  const msg = value as Partial<TelegramMessage>;
+  if (typeof msg.message_id !== "number") return null;
+  if (msg.photo != null && !Array.isArray(msg.photo)) return null;
+  if (Array.isArray(msg.photo)) {
+    const hasInvalidPhoto = msg.photo.some(
+      (photo) =>
+        typeof photo !== "object"
+        || photo == null
+        || typeof (photo as Partial<TelegramPhotoSize>).file_id !== "string"
+        || typeof (photo as Partial<TelegramPhotoSize>).width !== "number"
+        || typeof (photo as Partial<TelegramPhotoSize>).height !== "number",
+    );
+    if (hasInvalidPhoto) return null;
+  }
+  return msg as TelegramMessage;
+}
+
 function pickLargestPhoto(photos: TelegramPhotoSize[]) {
   return [...photos].sort((a, b) => (b.width * b.height) - (a.width * a.height))[0];
 }
 
-export async function handleTelegramWebhookUpdate(update: { message?: TelegramMessage }) {
-  const message = update.message;
+export async function handleTelegramWebhookUpdate(update: { message?: unknown }) {
+  const message = asTelegramMessage(update.message);
   if (!message?.photo?.length) return { ok: true, ignored: true };
 
   const resolved = await resolveProjectFromTelegramMessage(message);
   if (!resolved) return { ok: true, ignored: true };
 
   const token = process.env["TELEGRAM_BOT_TOKEN"];
-  if (!token) throw new Error("Missing TELEGRAM_BOT_TOKEN");
+  if (!token) throw new Error("Thiếu cấu hình TELEGRAM_BOT_TOKEN cho webhook Telegram");
 
   await updateCadStatus(String(resolved.projectId), "receiving_admin_cad");
 

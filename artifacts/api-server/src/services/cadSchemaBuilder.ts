@@ -11,7 +11,7 @@ function buildGridLines(size: number) {
 
 export async function buildCadSchema(projectId: string): Promise<CadSchema> {
   const project = getProjectById(Number(projectId));
-  if (!project) throw new Error("Dự án không tồn tại");
+  if (!project) throw new Error(`Dự án không tồn tại: ${projectId}`);
 
   const wd = project.wizardData;
   const bi = wd?.basicInfo;
@@ -51,7 +51,8 @@ export async function buildCadSchema(projectId: string): Promise<CadSchema> {
 
     const output = await runLayoutSkill(skillInput);
     if (!output.passed || !output.finalCleanJson) {
-      throw new Error("Không thể tạo dữ liệu CAD schema");
+      const issues = output.validation.issues.join(", ");
+      throw new Error(`Không thể tạo dữ liệu CAD schema cho dự án ${projectId}${issues ? `: ${issues}` : ""}`);
     }
     layout = output.finalCleanJson;
     project.layoutResult = layout;

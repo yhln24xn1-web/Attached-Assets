@@ -24,10 +24,14 @@ export function useStep3CadProcess(projectId: number | null) {
   const qc = useQueryClient();
 
   return useMutation<Step3ProcessResult, Error>({
-    mutationFn: () =>
-      apiFetch<Step3ProcessResult>(`/api/projects/${projectId}/process-step-3`, {
+    mutationFn: () => {
+      if (projectId == null) {
+        throw new Error("Không thể xử lý bước 3 vì projectId đang trống");
+      }
+      return apiFetch<Step3ProcessResult>(`/api/projects/${projectId}/process-step-3`, {
         method: "POST",
-      }),
+      });
+    },
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["project", projectId] });
     },

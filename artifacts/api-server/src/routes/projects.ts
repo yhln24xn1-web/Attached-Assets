@@ -149,22 +149,24 @@ router.post("/:id/process-step-3", async (req, res) => {
     res.status(403).json({ message: "Không có quyền" }); return;
   }
 
+  const projectId = String(id);
+
   try {
-    await updateCadStatus(String(id), "generating_json");
+    await updateCadStatus(projectId, "generating_json");
 
-    const cadSchema = await buildCadSchema(String(id));
-    const savedJson = await saveCadSchemaFile(String(id), cadSchema);
+    const cadSchema = await buildCadSchema(projectId);
+    const savedJson = await saveCadSchemaFile(projectId, cadSchema);
 
-    await updateCadStatus(String(id), "sending_to_admin");
+    await updateCadStatus(projectId, "sending_to_admin");
 
     const telegramRes = await sendCadSchemaToAdmin({
-      projectId: String(id),
+      projectId,
       jobId: cadSchema.metadata.jobId,
       filePath: savedJson.filePath,
       caption: `[CAD] JOB ID: ${cadSchema.metadata.jobId} | ${cadSchema.metadata.projectName}`,
     });
 
-    await updateCadStatus(String(id), "pending_admin_cad", {
+    await updateCadStatus(projectId, "pending_admin_cad", {
       jsonSchemaUrl: savedJson.url,
       telegramRequestMessageId: telegramRes.telegramMessageId,
       sentToAdminAt: new Date().toISOString(),
@@ -175,7 +177,7 @@ router.post("/:id/process-step-3", async (req, res) => {
       status: "pending_admin_cad",
     });
   } catch (err) {
-    await updateCadStatus(String(id), "failed");
+    await updateCadStatus(projectId, "failed");
     res.status(500).json({ ok: false, status: "failed", error: String(err) });
   }
 });

@@ -7,7 +7,7 @@ export async function updateCadStatus(
   extra?: Record<string, unknown>,
 ) {
   const project = getProjectById(Number(projectId));
-  if (!project) throw new Error("Dự án không tồn tại");
+  if (!project) throw new Error(`Dự án không tồn tại: ${projectId}`);
 
   project.cadResult = {
     ...project.cadResult,
@@ -28,7 +28,7 @@ export async function updateCadStatus(
 
 export async function appendCadDrawing(projectId: string, drawing: CadDrawingItem) {
   const project = getProjectById(Number(projectId));
-  if (!project) throw new Error("Dự án không tồn tại");
+  if (!project) throw new Error(`Dự án không tồn tại: ${projectId}`);
 
   project.cadResult.cadDrawings.push(drawing);
   return project.cadResult;

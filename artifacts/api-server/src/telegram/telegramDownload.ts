@@ -6,11 +6,22 @@ interface TelegramFileResponse {
   };
 }
 
+function isTelegramFileResponse(value: unknown): value is TelegramFileResponse {
+  if (typeof value !== "object" || value == null) return false;
+  const payload = value as Partial<TelegramFileResponse>;
+  if (typeof payload.ok !== "boolean") return false;
+  if (payload.ok === false) return true;
+  if (payload.result == null) return false;
+  return typeof payload.result.file_id === "string" && typeof payload.result.file_path === "string";
+}
+
 export async function downloadTelegramFile(fileId: string, token: string) {
   const fileInfoRes = await fetch(`https://api.telegram.org/bot${token}/getFile?file_id=${encodeURIComponent(fileId)}`);
   if (!fileInfoRes.ok) throw new Error(`Telegram getFile failed: ${fileInfoRes.status}`);
 
-  const fileInfo = await fileInfoRes.json() as TelegramFileResponse;
+  const payload = await fileInfoRes.json() as unknown;
+  if (!isTelegramFileResponse(payload)) throw new Error("Telegram getFile returned malformed payload");
+  const fileInfo = payload;
   if (!fileInfo.ok || !fileInfo.result?.file_path) throw new Error("Telegram getFile returned invalid payload");
 
   const fileUrl = `https://api.telegram.org/file/bot${token}/${fileInfo.result.file_path}`;

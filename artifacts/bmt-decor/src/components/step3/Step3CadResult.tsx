@@ -15,7 +15,11 @@ export default function Step3CadResult({ drawings }: Props) {
             className="rounded-xl p-2"
             style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)" }}
           >
-            <img src={drawing.imageUrl} alt="CAD drawing" className="w-full rounded-lg" />
+            <img
+              src={drawing.imageUrl}
+              alt={drawing.caption || drawing.floorName || "CAD drawing"}
+              className="w-full rounded-lg"
+            />
           </div>
         ))}
       </div>

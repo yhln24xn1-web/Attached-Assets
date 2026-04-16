@@ -24,7 +24,12 @@ interface ProjectState {
 export function useProjectPolling(projectId: number | null) {
   return useQuery<ProjectState>({
     queryKey: ["project", projectId],
-    queryFn: () => apiFetch<ProjectState>(`/api/projects/${projectId}`),
+    queryFn: () => {
+      if (projectId == null) {
+        throw new Error("Không thể polling dự án vì projectId đang trống");
+      }
+      return apiFetch<ProjectState>(`/api/projects/${projectId}`);
+    },
     enabled: projectId != null,
     refetchInterval: (query) => {
       const data = query.state.data;
