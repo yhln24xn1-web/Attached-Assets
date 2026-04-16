@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { getSession } from "../lib/session";
 
 const router = Router();
 
@@ -14,6 +15,8 @@ interface Project {
   bedrooms: number;
   budget: number;
   createdAt: string;
+  ownerId: string;
+  ownerName: string;
 }
 
 const PROJECTS: Project[] = [
@@ -29,6 +32,8 @@ const PROJECTS: Project[] = [
     bedrooms: 5,
     budget: 4200000000,
     createdAt: "2024-01-15T08:00:00Z",
+    ownerId: "user-002",
+    ownerName: "Nguyễn Văn Minh",
   },
   {
     id: 2,
@@ -42,6 +47,8 @@ const PROJECTS: Project[] = [
     bedrooms: 3,
     budget: 1800000000,
     createdAt: "2024-02-20T09:30:00Z",
+    ownerId: "user-003",
+    ownerName: "Trần Thị Lan",
   },
   {
     id: 3,
@@ -55,6 +62,8 @@ const PROJECTS: Project[] = [
     bedrooms: 6,
     budget: 3500000000,
     createdAt: "2024-03-05T10:00:00Z",
+    ownerId: "user-004",
+    ownerName: "Lê Hoàng Nam",
   },
   {
     id: 4,
@@ -68,6 +77,8 @@ const PROJECTS: Project[] = [
     bedrooms: 4,
     budget: 6500000000,
     createdAt: "2023-11-10T07:00:00Z",
+    ownerId: "user-002",
+    ownerName: "Nguyễn Văn Minh",
   },
   {
     id: 5,
@@ -81,6 +92,8 @@ const PROJECTS: Project[] = [
     bedrooms: 4,
     budget: 12000000000,
     createdAt: "2024-04-01T11:00:00Z",
+    ownerId: "user-003",
+    ownerName: "Trần Thị Lan",
   },
   {
     id: 6,
@@ -94,29 +107,65 @@ const PROJECTS: Project[] = [
     bedrooms: 8,
     budget: 5200000000,
     createdAt: "2023-08-22T08:30:00Z",
+    ownerId: "user-004",
+    ownerName: "Lê Hoàng Nam",
   },
 ];
 
-router.get("/", (_req, res) => {
-  res.json(PROJECTS);
+let nextProjectId = 7;
+
+router.get("/", (req, res) => {
+  const user = getSession(req);
+  if (!user) {
+    res.status(401).json({ message: "Chưa đăng nhập" });
+    return;
+  }
+
+  const result =
+    user.role === "admin"
+      ? PROJECTS
+      : PROJECTS.filter((p) => p.ownerId === user.id);
+
+  res.json(result);
 });
 
 router.get("/:id", (req, res) => {
+  const user = getSession(req);
+  if (!user) {
+    res.status(401).json({ message: "Chưa đăng nhập" });
+    return;
+  }
+
   const id = Number(req.params["id"]);
   const project = PROJECTS.find((p) => p.id === id);
+
   if (!project) {
     res.status(404).json({ message: "Dự án không tồn tại" });
     return;
   }
+
+  if (user.role !== "admin" && project.ownerId !== user.id) {
+    res.status(403).json({ message: "Bạn không có quyền xem dự án này" });
+    return;
+  }
+
   res.json(project);
 });
 
 router.post("/", (req, res) => {
-  const body = req.body as Omit<Project, "id" | "createdAt">;
+  const user = getSession(req);
+  if (!user) {
+    res.status(401).json({ message: "Chưa đăng nhập" });
+    return;
+  }
+
+  const body = req.body as Omit<Project, "id" | "createdAt" | "ownerId" | "ownerName">;
   const newProject: Project = {
     ...body,
-    id: PROJECTS.length + 1,
+    id: nextProjectId++,
     createdAt: new Date().toISOString(),
+    ownerId: user.id,
+    ownerName: user.fullName,
   };
   PROJECTS.push(newProject);
   res.status(201).json(newProject);
