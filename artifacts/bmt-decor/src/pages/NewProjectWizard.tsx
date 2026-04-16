@@ -1,31 +1,41 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, Sparkles, CheckCircle2, MessageSquareText } from "lucide-react";
-import Step1Sub1BasicInfo from "@/components/wizard/Step1Sub1BasicInfo";
-import Step1Sub2Architecture from "@/components/wizard/Step1Sub2Architecture";
-import Step1Sub3References from "@/components/wizard/Step1Sub3References";
-import Step2ChatRequirements from "@/components/wizard/Step2ChatRequirements";
+import { ArrowLeft, Sparkles, CheckCircle2, MessageSquareText, ClipboardList } from "lucide-react";
+import Step1Sub1BasicInfo        from "@/components/wizard/Step1Sub1BasicInfo";
+import Step1Sub2Architecture     from "@/components/wizard/Step1Sub2Architecture";
+import Step1Sub3References       from "@/components/wizard/Step1Sub3References";
+import Step2ChatRequirements     from "@/components/wizard/Step2ChatRequirements";
+import Step2Confirmation         from "@/components/wizard/Step2Confirmation";
+import { formatBudget }          from "@/components/wizard/calculation";
 import type {
   BasicInfoFormValues,
   ArchitectureFormValues,
   ReferencesFormValues,
   WizardData,
   Step2ChatOutput,
+  FollowupAnswers,
 } from "@/components/wizard/types";
 
-type InternalStep = 1 | 2 | 3 | 4;
+// ── Wizard step config ────────────────────────────────────────────────────────
+
+type InternalStep = 1 | 2 | 3 | 4 | 5;
 
 const MAJOR_PHASES = [
   { id: 1, label: "Thông tin", internalSteps: [1, 2, 3] as number[] },
-  { id: 2, label: "Yêu cầu",   internalSteps: [4] as number[] },
-  { id: 3, label: "Phân tích", internalSteps: [] as number[] },
+  { id: 2, label: "Yêu cầu",   internalSteps: [4, 5]   as number[] },
+  { id: 3, label: "Phân tích", internalSteps: []        as number[] },
 ];
 
 const SUB_STEP_LABELS: Record<number, string> = {
   1: "Dữ liệu",
   2: "Kiến trúc",
   3: "Tài liệu",
+};
+
+const PHASE2_LABELS: Record<number, string> = {
+  4: "Yêu cầu",
+  5: "Xác nhận",
 };
 
 function getMajorPhase(step: InternalStep): number {
@@ -35,12 +45,49 @@ function getMajorPhase(step: InternalStep): number {
   return 3;
 }
 
+// ── Helper: convert Step2ChatOutput → Record<string, string> ─────────────────
+
+function buildChatAnswersRecord(output: Step2ChatOutput): Record<string, string> {
+  const d = output.extractedData;
+  const f: FollowupAnswers = output.followupAnswers;
+
+  const answers: Record<string, string> = {};
+  answers["Kiểu xây dựng"]        = d.wantsFullBuild ? "Xây hết đất" : "Chừa sân";
+  if (!d.wantsFullBuild && d.setback !== null) {
+    answers["Khoảng chừa sân"]    = `${d.setback}m`;
+  }
+  answers["Chiều dài xây dựng"]   = `${d.buildLength.toFixed(1)}m`;
+  answers["Tổng DTXD"]            = `${d.totalConstructionArea.toFixed(1)}m²`;
+  answers["Ngân sách đề xuất"]    = formatBudget(d.updatedBudget);
+  if (d.userAcceptedBudget !== null) {
+    answers["Ngân sách"]          = d.userAcceptedBudget ? "Đồng ý" : "Cần điều chỉnh";
+  }
+  if (f.garage    !== undefined) answers["Gara xe"]          = f.garage    ? "Có" : "Không";
+  if (f.altarRoom !== undefined) answers["Phòng thờ"]        = f.altarRoom ? "Có" : "Không";
+  if (f.office    !== undefined) answers["Phòng làm việc"]   = f.office    ? "Có" : "Không";
+  if (f.skylight  !== undefined) answers["Giếng trời"]       = f.skylight  ? "Có" : "Không";
+  if (f.backYard  !== undefined) answers["Sân sau"]          = f.backYard  ? "Có" : "Không";
+  return answers;
+}
+
+// ── Header metadata ───────────────────────────────────────────────────────────
+
+const STEP_HEADER: Record<InternalStep, { title: string; sub: string; icon: React.ReactNode }> = {
+  1: { title: "Thông tin dự án",    sub: "Nhập thông tin cơ bản để bắt đầu hành trình",      icon: <Sparkles       className="w-5 h-5" style={{ color: "#ff7b00" }} /> },
+  2: { title: "Kiến trúc & Nội thất", sub: "Chọn phong cách kiến trúc phù hợp với không gian", icon: <Sparkles    className="w-5 h-5" style={{ color: "#ff7b00" }} /> },
+  3: { title: "Tài liệu tham khảo", sub: "Tải lên bản vẽ, ảnh hiện trạng và tài liệu",       icon: <Sparkles       className="w-5 h-5" style={{ color: "#ff7b00" }} /> },
+  4: { title: "Yêu cầu chi tiết",   sub: "Trò chuyện với AI để xác định thông số xây dựng",   icon: <MessageSquareText className="w-5 h-5" style={{ color: "#ff7b00" }} /> },
+  5: { title: "Xác nhận dữ liệu",   sub: "Kiểm tra toàn bộ thông tin trước khi AI sinh layout", icon: <ClipboardList className="w-5 h-5" style={{ color: "#ff7b00" }} /> },
+};
+
+// ── Step indicator ────────────────────────────────────────────────────────────
+
 function StepIndicator({ currentInternal }: { currentInternal: InternalStep }) {
   const currentMajor = getMajorPhase(currentInternal);
   return (
     <div className="flex items-center">
       {MAJOR_PHASES.map((phase, i) => {
-        const done = currentMajor > phase.id;
+        const done   = currentMajor > phase.id;
         const active = currentMajor === phase.id;
         return (
           <div key={phase.id} className="flex items-center">
@@ -48,18 +95,10 @@ function StepIndicator({ currentInternal }: { currentInternal: InternalStep }) {
               <div
                 className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300 flex-shrink-0"
                 style={{
-                  background: done
-                    ? "rgba(34,197,94,0.15)"
-                    : active
-                    ? "linear-gradient(135deg, #ff7b00, #ff4800)"
-                    : "rgba(255,255,255,0.06)",
-                  border: done
-                    ? "1px solid rgba(34,197,94,0.4)"
-                    : active
-                    ? "none"
-                    : "1px solid rgba(255,255,255,0.1)",
-                  boxShadow: active ? "0 0 14px rgba(255,100,0,0.4)" : "none",
-                  color: done ? "#22c55e" : active ? "#fff" : "rgba(255,255,255,0.3)",
+                  background:  done ? "rgba(34,197,94,0.15)" : active ? "linear-gradient(135deg, #ff7b00, #ff4800)" : "rgba(255,255,255,0.06)",
+                  border:      done ? "1px solid rgba(34,197,94,0.4)" : active ? "none" : "1px solid rgba(255,255,255,0.1)",
+                  boxShadow:   active ? "0 0 14px rgba(255,100,0,0.4)" : "none",
+                  color:       done ? "#22c55e" : active ? "#fff" : "rgba(255,255,255,0.3)",
                 }}
               >
                 {done ? <CheckCircle2 size={13} /> : phase.id}
@@ -75,8 +114,8 @@ function StepIndicator({ currentInternal }: { currentInternal: InternalStep }) {
               <div
                 className="mx-2 sm:mx-3 flex-shrink-0 transition-all duration-500"
                 style={{
-                  width: 20,
-                  height: 1,
+                  width:      20,
+                  height:     1,
                   background: done ? "rgba(34,197,94,0.35)" : "rgba(255,255,255,0.08)",
                 }}
               />
@@ -89,59 +128,85 @@ function StepIndicator({ currentInternal }: { currentInternal: InternalStep }) {
 }
 
 function SubStepDots({ currentInternal }: { currentInternal: InternalStep }) {
-  if (currentInternal > 3) return null;
-  return (
-    <div className="flex items-center gap-1.5 mt-1">
-      {[1, 2, 3].map((s) => (
-        <div
-          key={s}
-          className="flex items-center gap-1 transition-all duration-300"
-        >
-          <div
-            className="rounded-full transition-all duration-300"
-            style={{
-              width: currentInternal === s ? 16 : 6,
-              height: 6,
-              background:
-                currentInternal > s
-                  ? "rgba(34,197,94,0.5)"
-                  : currentInternal === s
-                  ? "#ff7b00"
-                  : "rgba(255,255,255,0.1)",
-            }}
-          />
-          {currentInternal === s && (
-            <span className="text-[10px]" style={{ color: "rgba(255,255,255,0.35)" }}>
-              {SUB_STEP_LABELS[s]}
-            </span>
-          )}
-        </div>
-      ))}
-    </div>
-  );
+  if (currentInternal <= 3) {
+    return (
+      <div className="flex items-center gap-1.5 mt-1">
+        {[1, 2, 3].map((s) => (
+          <div key={s} className="flex items-center gap-1 transition-all duration-300">
+            <div
+              className="rounded-full transition-all duration-300"
+              style={{
+                width:      currentInternal === s ? 16 : 6,
+                height:     6,
+                background:
+                  currentInternal > s
+                    ? "rgba(34,197,94,0.5)"
+                    : currentInternal === s
+                    ? "#ff7b00"
+                    : "rgba(255,255,255,0.1)",
+              }}
+            />
+            {currentInternal === s && (
+              <span className="text-[10px]" style={{ color: "rgba(255,255,255,0.35)" }}>
+                {SUB_STEP_LABELS[s]}
+              </span>
+            )}
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  if (currentInternal === 4 || currentInternal === 5) {
+    return (
+      <div className="flex items-center gap-1.5 mt-1">
+        {[4, 5].map((s) => (
+          <div key={s} className="flex items-center gap-1 transition-all duration-300">
+            <div
+              className="rounded-full transition-all duration-300"
+              style={{
+                width:      currentInternal === s ? 16 : 6,
+                height:     6,
+                background:
+                  currentInternal > s
+                    ? "rgba(34,197,94,0.5)"
+                    : currentInternal === s
+                    ? "#ff7b00"
+                    : "rgba(255,255,255,0.1)",
+              }}
+            />
+            {currentInternal === s && (
+              <span className="text-[10px]" style={{ color: "rgba(255,255,255,0.35)" }}>
+                {PHASE2_LABELS[s]}
+              </span>
+            )}
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  return null;
 }
 
-const STEP_HEADER: Record<InternalStep, { title: string; sub: string; icon: React.ReactNode }> = {
-  1: { title: "Thông tin dự án", sub: "Nhập thông tin cơ bản để bắt đầu hành trình", icon: <Sparkles className="w-5 h-5" style={{ color: "#ff7b00" }} /> },
-  2: { title: "Kiến trúc & Nội thất", sub: "Chọn phong cách kiến trúc phù hợp với không gian", icon: <Sparkles className="w-5 h-5" style={{ color: "#ff7b00" }} /> },
-  3: { title: "Tài liệu tham khảo", sub: "Tải lên bản vẽ, ảnh hiện trạng và tài liệu", icon: <Sparkles className="w-5 h-5" style={{ color: "#ff7b00" }} /> },
-  4: { title: "Yêu cầu chi tiết", sub: "Trò chuyện với AI để xác định thông số xây dựng", icon: <MessageSquareText className="w-5 h-5" style={{ color: "#ff7b00" }} /> },
-};
+// ── Slide animation ───────────────────────────────────────────────────────────
 
 const slide = {
-  enter: (d: number) => ({ opacity: 0, x: d * 30 }),
+  enter:  (d: number) => ({ opacity: 0, x: d * 30 }),
   center: { opacity: 1, x: 0 },
-  exit: (d: number) => ({ opacity: 0, x: d * -30 }),
+  exit:   (d: number) => ({ opacity: 0, x: d * -30 }),
 };
+
+// ── Main wizard ───────────────────────────────────────────────────────────────
 
 export default function NewProjectWizard() {
   const [, setLocation] = useLocation();
-  const [step, setStep] = useState<InternalStep>(1);
+  const [step,      setStep]      = useState<InternalStep>(1);
   const [direction, setDirection] = useState(1);
   const [wizardData, setWizardData] = useState<WizardData>({
-    basicInfo: null,
-    architecture: null,
-    references: null,
+    basicInfo:        null,
+    architecture:     null,
+    references:       null,
     chatRequirements: null,
   });
 
@@ -150,29 +215,62 @@ export default function NewProjectWizard() {
     setStep(next);
   }
 
+  // ── Step handlers ───────────────────────────────────────────────────────────
+
   function handleBasicInfoNext(data: BasicInfoFormValues) {
     setWizardData((p) => ({ ...p, basicInfo: data }));
     goTo(2, 1);
   }
 
-  function handleArchBack() { goTo(1, -1); }
+  function handleArchBack()                          { goTo(1, -1); }
   function handleArchNext(data: ArchitectureFormValues) {
     setWizardData((p) => ({ ...p, architecture: data }));
     goTo(3, 1);
   }
 
-  function handleRefsBack() { goTo(2, -1); }
+  function handleRefsBack()                          { goTo(2, -1); }
   function handleRefsNext(data: ReferencesFormValues) {
     setWizardData((p) => ({ ...p, references: data }));
     goTo(4, 1);
   }
 
   function handleChatComplete(data: Step2ChatOutput) {
-    const final: WizardData = { ...wizardData, chatRequirements: data };
-    setWizardData(final);
-    console.log("✅ Wizard complete:", final);
+    setWizardData((p) => ({ ...p, chatRequirements: data }));
+    goTo(5, 1);
+  }
+
+  function handleConfirmBack()                       { goTo(4, -1); }
+  function handleConfirmSubmit() {
+    console.log("✅ Wizard complete:", wizardData);
     setLocation("/dashboard");
   }
+
+  // ── Build confirmation props ────────────────────────────────────────────────
+
+  const bi   = wizardData.basicInfo;
+  const arch = wizardData.architecture;
+  const refs = wizardData.references;
+  const chat = wizardData.chatRequirements;
+
+  const confirmProject = bi
+    ? {
+        title:         bi.projectName,
+        landWidth:     bi.lotWidth,
+        landLength:    bi.lotLength,
+        floors:        bi.floors,
+        bedrooms:      bi.bedrooms,
+        bathrooms:     bi.bathrooms,
+        budget:        chat ? chat.extractedData.updatedBudget : bi.budget,
+        architecture:  arch ? { name: arch.architectureName } : undefined,
+        interiorStyle: arch?.style,
+      }
+    : null;
+
+  const confirmChatAnswers = chat ? buildChatAnswersRecord(chat) : {};
+
+  const confirmFiles = refs?.files.map((f) => ({ name: f.name, size: f.size }));
+
+  // ── Render ──────────────────────────────────────────────────────────────────
 
   const header = STEP_HEADER[step];
 
@@ -186,10 +284,11 @@ export default function NewProjectWizard() {
         }}
       />
 
+      {/* ── Header ───────────────────────────────────────────────────────── */}
       <header
         className="sticky top-0 z-40 px-4 sm:px-6"
         style={{
-          background: "rgba(10,14,22,0.88)",
+          background:   "rgba(10,14,22,0.88)",
           backdropFilter: "blur(16px)",
           WebkitBackdropFilter: "blur(16px)",
           borderBottom: "1px solid rgba(255,255,255,0.05)",
@@ -198,7 +297,7 @@ export default function NewProjectWizard() {
         <div className="max-w-2xl mx-auto flex items-center justify-between h-16 gap-4">
           <button
             onClick={() => setLocation("/dashboard")}
-            className="flex items-center gap-1.5 text-sm transition-colors duration-200 hover:text-white/70 flex-shrink-0"
+            className="flex items-center gap-1.5 text-sm transition-colors hover:text-white/70 flex-shrink-0"
             style={{ color: "rgba(255,255,255,0.35)" }}
           >
             <ArrowLeft className="w-4 h-4" />
@@ -211,7 +310,7 @@ export default function NewProjectWizard() {
             className="w-8 h-8 rounded-xl flex items-center justify-center font-black text-white text-sm flex-shrink-0"
             style={{
               background: "linear-gradient(135deg, #ff7b00, #ff4500)",
-              boxShadow: "0 0 14px rgba(255,100,0,0.4)",
+              boxShadow:  "0 0 14px rgba(255,100,0,0.4)",
             }}
           >
             B
@@ -219,6 +318,7 @@ export default function NewProjectWizard() {
         </div>
       </header>
 
+      {/* ── Main content ─────────────────────────────────────────────────── */}
       <main className="max-w-2xl mx-auto px-4 sm:px-6 py-6">
         <motion.div
           initial={{ opacity: 0, y: 10 }}
@@ -230,11 +330,17 @@ export default function NewProjectWizard() {
             className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5"
             style={{
               background: "rgba(255,123,0,0.1)",
-              border: "1px solid rgba(255,123,0,0.2)",
+              border:     "1px solid rgba(255,123,0,0.2)",
             }}
           >
             <AnimatePresence mode="wait">
-              <motion.div key={step} initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.8 }} transition={{ duration: 0.18 }}>
+              <motion.div
+                key={step}
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.8 }}
+                transition={{ duration: 0.18 }}
+              >
                 {header.icon}
               </motion.div>
             </AnimatePresence>
@@ -260,15 +366,16 @@ export default function NewProjectWizard() {
           </div>
         </motion.div>
 
+        {/* ── Step card ─────────────────────────────────────────────────── */}
         <div
           className="rounded-2xl"
           style={{
-            background: "rgba(15,19,28,0.7)",
+            background:   "rgba(15,19,28,0.7)",
             backdropFilter: "blur(12px)",
             WebkitBackdropFilter: "blur(12px)",
-            border: "1px solid rgba(255,255,255,0.07)",
-            boxShadow: "0 12px 48px rgba(0,0,0,0.4)",
-            padding: step === 4 ? "20px 16px" : "24px 24px",
+            border:       "1px solid rgba(255,255,255,0.07)",
+            boxShadow:    "0 12px 48px rgba(0,0,0,0.4)",
+            padding:      step === 4 ? "20px 16px" : step === 5 ? "20px" : "24px",
           }}
         >
           <AnimatePresence mode="wait" custom={direction}>
@@ -308,6 +415,19 @@ export default function NewProjectWizard() {
                 />
               </motion.div>
             )}
+
+            {step === 5 && confirmProject && (
+              <motion.div key="s5" custom={direction} variants={slide} initial="enter" animate="center" exit="exit" transition={{ duration: 0.3, ease: "easeInOut" }}>
+                <Step2Confirmation
+                  project={confirmProject}
+                  chatAnswers={confirmChatAnswers}
+                  uploadedFiles={confirmFiles}
+                  sheetUrl={refs?.sheetUrl}
+                  onBack={handleConfirmBack}
+                  onConfirm={handleConfirmSubmit}
+                />
+              </motion.div>
+            )}
           </AnimatePresence>
         </div>
 
@@ -317,7 +437,9 @@ export default function NewProjectWizard() {
         >
           {step <= 3
             ? `Bước 1.${step} / 3 — dữ liệu được lưu khi quay lại`
-            : `Bước 2.1 — hoàn tất yêu cầu để AI phân tích`}
+            : step === 4
+            ? "Bước 2.1 — hoàn tất yêu cầu để AI phân tích"
+            : "Bước 2.2 — xác nhận trước khi AI sinh layout"}
         </p>
       </main>
     </div>
