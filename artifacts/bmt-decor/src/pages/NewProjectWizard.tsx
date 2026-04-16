@@ -4,13 +4,20 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, Sparkles, CheckCircle2 } from "lucide-react";
 import Step1Sub1BasicInfo from "@/components/wizard/Step1Sub1BasicInfo";
 import Step1Sub2Architecture from "@/components/wizard/Step1Sub2Architecture";
-import type { BasicInfoFormValues, ArchitectureFormValues, WizardData } from "@/components/wizard/types";
+import Step1Sub3References from "@/components/wizard/Step1Sub3References";
+import type {
+  BasicInfoFormValues,
+  ArchitectureFormValues,
+  ReferencesFormValues,
+  WizardData,
+} from "@/components/wizard/types";
 
-type Step = 1 | 2;
+type Step = 1 | 2 | 3;
 
-const STEPS = [
-  { id: 1, label: "Thông tin cơ bản" },
-  { id: 2, label: "Kiến trúc & Nội thất" },
+const STEPS: { id: number; label: string }[] = [
+  { id: 1, label: "Thông tin" },
+  { id: 2, label: "Kiến trúc" },
+  { id: 3, label: "Tài liệu" },
 ];
 
 function StepIndicator({ current }: { current: Step }) {
@@ -21,7 +28,7 @@ function StepIndicator({ current }: { current: Step }) {
         const active = current === s.id;
         return (
           <div key={s.id} className="flex items-center">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5">
               <div
                 className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300 flex-shrink-0"
                 style={{
@@ -43,16 +50,16 @@ function StepIndicator({ current }: { current: Step }) {
               </div>
               <span
                 className="text-xs font-medium hidden sm:block transition-colors duration-300"
-                style={{ color: active ? "rgba(255,255,255,0.85)" : "rgba(255,255,255,0.3)" }}
+                style={{ color: active ? "rgba(255,255,255,0.85)" : "rgba(255,255,255,0.28)" }}
               >
                 {s.label}
               </span>
             </div>
             {i < STEPS.length - 1 && (
               <div
-                className="mx-3 transition-all duration-500"
+                className="mx-2 sm:mx-3 flex-shrink-0 transition-all duration-500"
                 style={{
-                  width: 28,
+                  width: 20,
                   height: 1,
                   background: done ? "rgba(34,197,94,0.35)" : "rgba(255,255,255,0.08)",
                 }}
@@ -64,6 +71,18 @@ function StepIndicator({ current }: { current: Step }) {
     </div>
   );
 }
+
+const STEP_TITLES: Record<Step, string> = {
+  1: "Thông tin dự án",
+  2: "Kiến trúc & Nội thất",
+  3: "Upload tài liệu",
+};
+
+const STEP_SUBS: Record<Step, string> = {
+  1: "Nhập thông tin cơ bản để bắt đầu hành trình",
+  2: "Chọn phong cách kiến trúc phù hợp với không gian của bạn",
+  3: "Tải lên bản vẽ, ảnh hiện trạng và tài liệu tham khảo",
+};
 
 const slide = {
   enter: (d: number) => ({ opacity: 0, x: d * 30 }),
@@ -78,6 +97,7 @@ export default function NewProjectWizard() {
   const [wizardData, setWizardData] = useState<WizardData>({
     basicInfo: null,
     architecture: null,
+    references: null,
   });
 
   function goTo(next: Step, dir: number) {
@@ -95,16 +115,20 @@ export default function NewProjectWizard() {
   }
 
   function handleArchNext(data: ArchitectureFormValues) {
-    const final: WizardData = { ...wizardData, architecture: data };
+    setWizardData((prev) => ({ ...prev, architecture: data }));
+    goTo(3, 1);
+  }
+
+  function handleRefsBack() {
+    goTo(2, -1);
+  }
+
+  function handleRefsNext(data: ReferencesFormValues) {
+    const final: WizardData = { ...wizardData, references: data };
     setWizardData(final);
     console.log("✅ Wizard complete:", final);
     setLocation("/dashboard");
   }
-
-  const subtitle =
-    step === 1
-      ? "Nhập thông tin cơ bản để bắt đầu hành trình"
-      : "Chọn phong cách kiến trúc phù hợp với không gian của bạn";
 
   return (
     <div className="min-h-screen relative" style={{ background: "#0a0e16" }}>
@@ -176,11 +200,11 @@ export default function NewProjectWizard() {
                 className="text-xl font-bold text-white"
                 style={{ fontFamily: "'Plus Jakarta Sans', 'Inter', sans-serif" }}
               >
-                {step === 1 ? "Thông tin dự án" : "Kiến trúc & Nội thất"}
+                {STEP_TITLES[step]}
               </motion.h1>
             </AnimatePresence>
             <p className="text-xs mt-0.5" style={{ color: "rgba(255,255,255,0.32)" }}>
-              {subtitle}
+              {STEP_SUBS[step]}
             </p>
           </div>
         </motion.div>
@@ -228,6 +252,25 @@ export default function NewProjectWizard() {
                   defaultValues={wizardData.architecture}
                   onBack={handleArchBack}
                   onNext={handleArchNext}
+                />
+              </motion.div>
+            )}
+
+            {step === 3 && wizardData.basicInfo && (
+              <motion.div
+                key="step3"
+                custom={direction}
+                variants={slide}
+                initial="enter"
+                animate="center"
+                exit="exit"
+                transition={{ duration: 0.26, ease: "easeInOut" }}
+              >
+                <Step1Sub3References
+                  totalFloors={wizardData.basicInfo.floors}
+                  defaultValues={wizardData.references}
+                  onBack={handleRefsBack}
+                  onNext={handleRefsNext}
                 />
               </motion.div>
             )}

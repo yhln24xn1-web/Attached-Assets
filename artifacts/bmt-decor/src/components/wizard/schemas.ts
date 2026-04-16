@@ -33,3 +33,11 @@ export const basicInfoSchema = z.object({
     .min(100, "Ngân sách tối thiểu 100 triệu")
     .max(50000, "Ngân sách tối đa 50,000 triệu"),
 });
+
+export const GOOGLE_SHEET_REGEX =
+  /^https:\/\/(docs\.google\.com\/spreadsheets|sheets\.google\.com)/;
+
+export function validateSheetUrl(url: string): boolean {
+  if (!url.trim()) return true;
+  return GOOGLE_SHEET_REGEX.test(url);
+}

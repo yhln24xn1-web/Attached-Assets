@@ -1,4 +1,11 @@
-import type { ArchitectureOption, CategoryType } from "./types";
+import type {
+  ArchitectureOption,
+  CategoryType,
+  DocumentType,
+  Priority,
+  InterpretationMode,
+  FileMetadata,
+} from "./types";
 
 export const getFloorKey = (floors: number): string => {
   if (floors <= 1) return "1";
@@ -51,3 +58,48 @@ export const architectureOptions: ArchitectureOption[] = [
 export const BUDGET_SLIDER_MAX = 5000;
 export const BUDGET_SLIDER_STEP = 50;
 export const BUDGET_SLIDER_MIN = 100;
+
+export const MAX_FILE_SIZE_MB = 200;
+
+export const DOCUMENT_TYPE_LABELS: Record<DocumentType, string> = {
+  site_photo: "Ảnh hiện trạng",
+  current_plan: "Bản vẽ hiện trạng",
+  reference_plan: "Bản vẽ tham khảo",
+  cad_file: "File CAD (DWG/DXF)",
+  budget_file: "File dự toán",
+  video: "Video",
+  other: "Khác",
+};
+
+export const INTERPRETATION_MODE_LABELS: Record<InterpretationMode, string> = {
+  reference_only: "Chỉ tham khảo",
+  layout_source: "Nguồn layout",
+  strict_source: "Nguồn chính xác",
+};
+
+export const PRIORITY_LABELS: Record<Priority, string> = {
+  low: "Thấp",
+  medium: "Trung bình",
+  high: "Cao",
+  strict: "Bắt buộc",
+};
+
+const DEFAULT_INTERPRETATION: Record<DocumentType, InterpretationMode> = {
+  site_photo: "reference_only",
+  current_plan: "layout_source",
+  reference_plan: "reference_only",
+  cad_file: "layout_source",
+  budget_file: "reference_only",
+  video: "reference_only",
+  other: "reference_only",
+};
+
+export function getDefaultMetadata(documentType: DocumentType): FileMetadata {
+  return {
+    documentType,
+    appliesToFloors: "all",
+    priority: "medium",
+    interpretationMode: DEFAULT_INTERPRETATION[documentType],
+    note: "",
+  };
+}
