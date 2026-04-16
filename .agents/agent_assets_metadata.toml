@@ -1,0 +1,8 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "Pl8CVZyCYpKbZchtgLKEC"
+uri = "file://bmt-decor-source.tar.gz"
+type = "unspecified"
+title = "BMT Decor - Source Code (sạch, không có Replit)"
