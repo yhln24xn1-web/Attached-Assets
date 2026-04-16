@@ -5,14 +5,14 @@ import { ArrowLeft, Sparkles, CheckCircle2, MessageSquareText } from "lucide-rea
 import Step1Sub1BasicInfo from "@/components/wizard/Step1Sub1BasicInfo";
 import Step1Sub2Architecture from "@/components/wizard/Step1Sub2Architecture";
 import Step1Sub3References from "@/components/wizard/Step1Sub3References";
-import Step2ChatRequirements from "@/components/wizard/step2/Step2ChatRequirements";
+import Step2ChatRequirements from "@/components/wizard/Step2ChatRequirements";
 import type {
   BasicInfoFormValues,
   ArchitectureFormValues,
   ReferencesFormValues,
   WizardData,
+  Step2ChatOutput,
 } from "@/components/wizard/types";
-import type { Step2ChatOutput } from "@/components/wizard/step2/types";
 
 type InternalStep = 1 | 2 | 3 | 4;
 
