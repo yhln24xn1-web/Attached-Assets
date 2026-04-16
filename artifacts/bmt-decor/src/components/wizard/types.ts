@@ -69,4 +69,5 @@ export interface ArchitectureOption {
   floorKey: string;
   name: string;
   interiors: string[];
+  imageUrl: string;
 }

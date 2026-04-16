@@ -11,10 +11,6 @@ interface Props {
   onNext: (data: ArchitectureFormValues) => void;
 }
 
-const LETTER_MAP: Record<string, string> = {
-  a: "A", b: "B", c: "C", d: "D",
-};
-
 export default function Step1Sub2Architecture({ floors, defaultValues, onBack, onNext }: Props) {
   const [selectedId, setSelectedId] = useState<string | null>(
     defaultValues?.architectureId ?? null
@@ -52,74 +48,93 @@ export default function Step1Sub2Architecture({ floors, defaultValues, onBack, o
         <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-white/40">
           Chọn mẫu kiến trúc — {floors} tầng
         </p>
+
         <div className="grid grid-cols-2 gap-3">
           {filtered.map((arch, i) => {
             const isOn = selectedId === arch.id;
-            const letter = LETTER_MAP[arch.id.replace(/\d/g, "")] ?? arch.id;
             return (
               <motion.button
                 key={arch.id}
                 type="button"
-                initial={{ opacity: 0, y: 10 }}
+                initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.06, duration: 0.32 }}
+                transition={{ delay: i * 0.07, duration: 0.3 }}
                 whileTap={{ scale: 0.97 }}
                 onClick={() => {
                   setSelectedId(arch.id);
                   if (arch.id !== selectedId) setSelectedStyle(null);
                 }}
-                className="relative rounded-2xl p-4 text-left flex flex-col gap-2.5 transition-all duration-250"
+                className="relative rounded-2xl overflow-hidden text-left flex flex-col transition-all duration-250"
                 style={{
-                  background: isOn ? "rgba(255,123,0,0.09)" : "rgba(255,255,255,0.03)",
+                  background: isOn ? "rgba(255,123,0,0.08)" : "rgba(255,255,255,0.03)",
                   border: isOn
-                    ? "1px solid rgba(255,123,0,0.55)"
-                    : "1px solid rgba(255,255,255,0.07)",
+                    ? "1.5px solid rgba(255,123,0,0.6)"
+                    : "1.5px solid rgba(255,255,255,0.07)",
                   boxShadow: isOn
-                    ? "0 0 22px rgba(255,100,0,0.18), inset 0 0 18px rgba(255,100,0,0.04)"
+                    ? "0 0 24px rgba(255,100,0,0.22), inset 0 0 20px rgba(255,100,0,0.04)"
                     : "none",
-                  backdropFilter: "blur(8px)",
                 }}
               >
-                {isOn && (
-                  <motion.div
-                    initial={{ scale: 0, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    className="absolute top-3 right-3"
-                  >
-                    <CheckCircle2 size={15} style={{ color: "#ff7b00" }} />
-                  </motion.div>
-                )}
-
-                <div
-                  className="w-9 h-9 rounded-xl flex items-center justify-center text-sm font-bold"
-                  style={{
-                    background: isOn ? "rgba(255,123,0,0.18)" : "rgba(255,255,255,0.05)",
-                    border: `1px solid ${isOn ? "rgba(255,123,0,0.3)" : "rgba(255,255,255,0.06)"}`,
-                    color: isOn ? "#ff9500" : "rgba(255,255,255,0.3)",
-                  }}
-                >
-                  {letter}
+                {/* Image area */}
+                <div className="relative w-full overflow-hidden" style={{ height: 96 }}>
+                  <img
+                    src={arch.imageUrl}
+                    alt={arch.name}
+                    className="w-full h-full object-cover transition-transform duration-500"
+                    style={{ transform: isOn ? "scale(1.05)" : "scale(1)" }}
+                    loading="lazy"
+                    onError={(e) => {
+                      (e.currentTarget as HTMLImageElement).style.display = "none";
+                    }}
+                  />
+                  {/* Dark overlay for unselected */}
+                  <div
+                    className="absolute inset-0 transition-opacity duration-300"
+                    style={{
+                      background: isOn
+                        ? "linear-gradient(to top, rgba(0,0,0,0.55) 0%, rgba(255,80,0,0.08) 100%)"
+                        : "linear-gradient(to top, rgba(0,0,0,0.65) 0%, rgba(0,0,0,0.15) 100%)",
+                    }}
+                  />
+                  {/* Selected check */}
+                  <AnimatePresence>
+                    {isOn && (
+                      <motion.div
+                        initial={{ scale: 0, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        exit={{ scale: 0, opacity: 0 }}
+                        transition={{ type: "spring", stiffness: 400, damping: 20 }}
+                        className="absolute top-2 right-2 rounded-full p-0.5"
+                        style={{ background: "rgba(255,100,0,0.9)", boxShadow: "0 2px 8px rgba(255,80,0,0.5)" }}
+                      >
+                        <CheckCircle2 size={13} className="text-white" />
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
 
-                <span
-                  className="text-sm font-semibold leading-snug"
-                  style={{ color: isOn ? "rgba(255,255,255,0.95)" : "rgba(255,255,255,0.6)" }}
-                >
-                  {arch.name}
-                </span>
-
-                <span
-                  className="text-[11px] leading-relaxed"
-                  style={{ color: isOn ? "rgba(255,160,60,0.65)" : "rgba(255,255,255,0.22)" }}
-                >
-                  {arch.interiors.slice(0, 3).join(" · ")}
-                </span>
+                {/* Text area */}
+                <div className="px-3 pt-2.5 pb-3 flex flex-col gap-1">
+                  <span
+                    className="text-[13px] font-semibold leading-snug"
+                    style={{ color: isOn ? "rgba(255,255,255,0.95)" : "rgba(255,255,255,0.62)" }}
+                  >
+                    {arch.name}
+                  </span>
+                  <span
+                    className="text-[10px] leading-relaxed"
+                    style={{ color: isOn ? "rgba(255,160,60,0.7)" : "rgba(255,255,255,0.22)" }}
+                  >
+                    {arch.interiors.slice(0, 3).join(" · ")}
+                  </span>
+                </div>
               </motion.button>
             );
           })}
         </div>
       </div>
 
+      {/* Interior style picker */}
       <AnimatePresence mode="wait">
         {selectedArch && (
           <motion.div
@@ -127,9 +142,12 @@ export default function Step1Sub2Architecture({ floors, defaultValues, onBack, o
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
-            transition={{ duration: 0.28 }}
+            transition={{ duration: 0.25 }}
             className="space-y-3 rounded-2xl p-4"
-            style={{ background: "rgba(255,123,0,0.04)", border: "1px solid rgba(255,123,0,0.12)" }}
+            style={{
+              background: "rgba(255,123,0,0.04)",
+              border: "1px solid rgba(255,123,0,0.12)",
+            }}
           >
             <p className="text-sm" style={{ color: "rgba(255,255,255,0.5)" }}>
               Phong cách nội thất cho{" "}
@@ -168,6 +186,7 @@ export default function Step1Sub2Architecture({ floors, defaultValues, onBack, o
         )}
       </AnimatePresence>
 
+      {/* Navigation */}
       <div className="flex gap-3 pt-1">
         <motion.button
           type="button"

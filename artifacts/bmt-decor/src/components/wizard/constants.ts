@@ -33,26 +33,29 @@ export const FLOOR_OPTIONS: { label: string; value: number }[] = [
   { label: "5+ tầng", value: 5 },
 ];
 
+const UNS = (id: string) =>
+  `https://images.unsplash.com/photo-${id}?w=480&h=280&fit=crop&auto=format&q=78`;
+
 export const architectureOptions: ArchitectureOption[] = [
-  { id: "1a", floorKey: "1", name: "Nhà cấp 4 hiện đại", interiors: ["Modern", "Minimalist", "Scandinavian"] },
-  { id: "1b", floorKey: "1", name: "Nhà cấp 4 mái bằng", interiors: ["Modern", "Industrial", "Minimalist"] },
-  { id: "1c", floorKey: "1", name: "Nhà cấp 4 mái thái", interiors: ["Indochine", "Wabi Sabi", "Tropical"] },
-  { id: "1d", floorKey: "1", name: "Nhà cấp 4 sân vườn", interiors: ["Tropical", "Scandinavian", "Wabi Sabi"] },
+  { id: "1a", floorKey: "1", name: "Nhà cấp 4 hiện đại",    interiors: ["Modern", "Minimalist", "Scandinavian"],                          imageUrl: UNS("1600596542815-ffad4c1539a9") },
+  { id: "1b", floorKey: "1", name: "Nhà cấp 4 mái bằng",    interiors: ["Modern", "Industrial", "Minimalist"],                            imageUrl: UNS("1600047509807-ba8f99d2cdde") },
+  { id: "1c", floorKey: "1", name: "Nhà cấp 4 mái thái",    interiors: ["Indochine", "Wabi Sabi", "Tropical"],                            imageUrl: UNS("1568605114967-8130f3a36994") },
+  { id: "1d", floorKey: "1", name: "Nhà cấp 4 sân vườn",    interiors: ["Tropical", "Scandinavian", "Wabi Sabi"],                         imageUrl: UNS("1564013799919-ab600027ffc6") },
 
-  { id: "2a", floorKey: "2", name: "Hiện đại mái bằng", interiors: ["Modern", "Minimalist", "Industrial"] },
-  { id: "2b", floorKey: "2", name: "Hiện đại mái lệch", interiors: ["Modern", "Scandinavian", "Minimalist"] },
-  { id: "2c", floorKey: "2", name: "Phố cổ truyền thống", interiors: ["Indochine", "Neoclassic", "Wabi Sabi"] },
-  { id: "2d", floorKey: "2", name: "Biệt thự sân vườn", interiors: ["Tropical", "Modern", "Scandinavian"] },
+  { id: "2a", floorKey: "2", name: "Hiện đại mái bằng",     interiors: ["Modern", "Minimalist", "Industrial"],                            imageUrl: UNS("1600585154340-be6161a56a0c") },
+  { id: "2b", floorKey: "2", name: "Hiện đại mái lệch",     interiors: ["Modern", "Scandinavian", "Minimalist"],                          imageUrl: UNS("1613977257363-707ba9348227") },
+  { id: "2c", floorKey: "2", name: "Phố cổ truyền thống",   interiors: ["Indochine", "Neoclassic", "Wabi Sabi"],                          imageUrl: UNS("1430285561322-7808604715df") },
+  { id: "2d", floorKey: "2", name: "Biệt thự sân vườn",     interiors: ["Tropical", "Modern", "Scandinavian"],                            imageUrl: UNS("1580587771525-78b9dba3b914") },
 
-  { id: "3a", floorKey: "3", name: "Hiện đại công nghiệp", interiors: ["Industrial", "Modern", "Minimalist"] },
-  { id: "3b", floorKey: "3", name: "Tân cổ điển mái ngói", interiors: ["Neoclassic", "Indochine", "Wabi Sabi"] },
-  { id: "3c", floorKey: "3", name: "Biệt thự song lập", interiors: ["Modern", "Scandinavian", "Tropical"] },
-  { id: "3d", floorKey: "3", name: "Nhà phố 3 tầng", interiors: ["Modern", "Minimalist", "Industrial"] },
+  { id: "3a", floorKey: "3", name: "Hiện đại công nghiệp",  interiors: ["Industrial", "Modern", "Minimalist"],                            imageUrl: UNS("1555636222-cae831e670b3") },
+  { id: "3b", floorKey: "3", name: "Tân cổ điển mái ngói",  interiors: ["Neoclassic", "Indochine", "Wabi Sabi"],                          imageUrl: UNS("1566908829550-e6551b00979b") },
+  { id: "3c", floorKey: "3", name: "Biệt thự song lập",     interiors: ["Modern", "Scandinavian", "Tropical"],                            imageUrl: UNS("1512917774080-9991f1c4c750") },
+  { id: "3d", floorKey: "3", name: "Nhà phố 3 tầng",        interiors: ["Modern", "Minimalist", "Industrial"],                            imageUrl: UNS("1570129477492-45c003edd2be") },
 
-  { id: "4a", floorKey: "4-5", name: "Biệt thự lớn hiện đại", interiors: ["Modern", "Minimalist", "Scandinavian", "Industrial"] },
-  { id: "4b", floorKey: "4-5", name: "Nhà phố cao tầng", interiors: ["Modern", "Industrial", "Minimalist", "Neoclassic", "Luxury Modern", "Indochine"] },
-  { id: "4c", floorKey: "4-5", name: "Công trình kết hợp", interiors: ["Modern", "Industrial", "Neoclassic", "Indochine", "Wabi Sabi"] },
-  { id: "4d", floorKey: "4-5", name: "Biệt thự tân cổ điển", interiors: ["Neoclassic", "Indochine", "Wabi Sabi", "Luxury Modern"] },
+  { id: "4a", floorKey: "4-5", name: "Biệt thự lớn hiện đại",  interiors: ["Modern", "Minimalist", "Scandinavian", "Industrial"],         imageUrl: UNS("1605276374104-dee2a0ed3cd6") },
+  { id: "4b", floorKey: "4-5", name: "Nhà phố cao tầng",       interiors: ["Modern", "Industrial", "Minimalist", "Neoclassic", "Luxury Modern", "Indochine"], imageUrl: UNS("1531971589569-0d9370cbe1e5") },
+  { id: "4c", floorKey: "4-5", name: "Công trình kết hợp",     interiors: ["Modern", "Industrial", "Neoclassic", "Indochine", "Wabi Sabi"],imageUrl: UNS("1549517045-bc93de075e53") },
+  { id: "4d", floorKey: "4-5", name: "Biệt thự tân cổ điển",   interiors: ["Neoclassic", "Indochine", "Wabi Sabi", "Luxury Modern"],      imageUrl: UNS("1600607687939-ce8a6c25118c") },
 ];
 
 export const BUDGET_SLIDER_MAX = 5000;
