@@ -1,0 +1,28 @@
+
+
+### **MASTER PROMPT GỬI REPLIT AGENT (PHẦN 1: AUTH PAGE)**
+"Tôi đang xây dựng phiên bản **BMT Decor V2**. Hãy triển khai trang **Đăng nhập (AuthPage.tsx)** dựa trên các yêu cầu kết hợp về kỹ thuật và thẩm mỹ sau đây:
+**1. Công nghệ & Quy tắc:**
+ * **Stack**: React + TypeScript + Vite, Tailwind CSS + shadcn/ui.
+ * **Thư viện**: lucide-react (icons), wouter (routing), @tanstack/react-query (API), framer-motion (animation).
+ * **Quy tắc**: Tuyệt đối không dùng any, định nghĩa interface rõ ràng. Chỉ tạo file mới, tự động thêm route /login vào App.tsx.
+ * **Thư mục**: client/src/pages/AuthPage.tsx.
+**2. Thẩm mỹ & Hiệu ứng (Branding BMT Decor):**
+ * **Phong cách**: Dark Mode hiện đại, sử dụng **Glassmorphism** (nền #16191e/80 kèm backdrop-blur-xl).
+ * **Màu sắc**: Nền chính #0f1115, màu chủ đạo (Accent) là **Cam (#f97316)**.
+ * **Hiệu ứng**:
+   * Thêm các khối cầu sáng mờ (Glow) màu cam phía sau Form để tạo chiều sâu.
+   * Sử dụng framer-motion để Form trượt nhẹ từ dưới lên (fade-in & slide-up) khi load trang.
+   * Các nút bấm và input phải có hiệu ứng phát sáng viền (glow border) khi focus hoặc hover.
+**3. Chức năng & Layout:**
+ * **Giao diện**: Chia 2 tab (Tabs từ shadcn/ui): 'Đăng nhập' và 'Đăng ký'.
+ * **Form Đăng nhập**:
+   * Trường: Số điện thoại, Mật khẩu (có nút ẩn/hiện mắt), Nút 'Đăng nhập'.
+   * Thêm nút 'Tiếp tục với Google' (Gmail) phong cách sang trọng.
+   * Có link 'Quên mật khẩu' nhỏ màu cam.
+ * **Form Đăng ký**: Họ tên, Số điện thoại, Email (tùy chọn), Mật khẩu, Nhập lại mật khẩu.
+ * **Validation**: Sử dụng Zod hoặc validation cơ bản để check không để trống, mật khẩu khớp.
+ * **API Simulation**: Sử dụng useMutation để gọi POST /api/auth/login và /api/auth/register. Khi thành công, dùng setLocation chuyển hướng về /dashboard.
+**4. Tính Responsive**:
+ * Giao diện phải mượt mà trên cả Mobile (Form giãn full ngang) và Desktop (Form nằm giữa màn hình với kích thước cố định).
+Hãy bắt đầu viết code ngay bây giờ và hướng dẫn tôi cách kiểm tra sau khi hoàn thành."
