@@ -4,18 +4,19 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
 import AuthPage from "@/pages/AuthPage";
+import Dashboard from "@/pages/Dashboard";
+import NewProjectWizard from "@/pages/NewProjectWizard";
 
 const queryClient = new QueryClient();
 
-function Dashboard() {
+function ProjectDetail() {
   return (
-    <div className="min-h-screen w-full flex items-center justify-center bg-[#0f1115]">
+    <div
+      className="min-h-screen flex items-center justify-center"
+      style={{ background: "#0a0e16" }}
+    >
       <div className="text-center">
-        <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-orange-500 to-orange-600 shadow-lg shadow-orange-500/30 mb-4">
-          <span className="text-white text-3xl font-black">B</span>
-        </div>
-        <h1 className="text-3xl font-bold text-white mt-4">Chào mừng đến BMT Decor!</h1>
-        <p className="mt-2 text-sm text-white/40">Đăng nhập thành công.</p>
+        <p className="text-white/40 text-sm">Chi tiết dự án — đang phát triển</p>
       </div>
     </div>
   );
@@ -27,6 +28,8 @@ function Router() {
       <Route path="/" component={AuthPage} />
       <Route path="/login" component={AuthPage} />
       <Route path="/dashboard" component={Dashboard} />
+      <Route path="/projects/new" component={NewProjectWizard} />
+      <Route path="/projects/:id" component={ProjectDetail} />
       <Route component={NotFound} />
     </Switch>
   );
