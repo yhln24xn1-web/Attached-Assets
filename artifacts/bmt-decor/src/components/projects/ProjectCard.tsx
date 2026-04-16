@@ -137,22 +137,55 @@ export default function ProjectCard({ project, index, showOwner = false }: Proje
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-2">
+      <div className="flex items-center gap-3 pt-0.5">
         {[
-          { icon: <Ruler className="w-3.5 h-3.5" />, label: `${project.width}×${project.length} m²` },
-          { icon: <Layers className="w-3.5 h-3.5" />, label: `${project.floors} tầng` },
-          { icon: <BedDouble className="w-3.5 h-3.5" />, label: `${project.bedrooms} phòng ngủ` },
-          { icon: <Wallet className="w-3.5 h-3.5" />, label: formatBudget(project.budget) },
-        ].map(({ icon, label }, i) => (
-          <div
-            key={i}
-            className="flex items-center gap-2 rounded-xl px-3 py-2"
-            style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.06)" }}
-          >
-            <span style={{ color: "rgba(255,123,0,0.7)" }}>{icon}</span>
-            <span className="text-xs truncate" style={{ color: "rgba(255,255,255,0.55)" }}>
-              {label}
-            </span>
+          {
+            icon: <Ruler size={14} />,
+            value: `${project.width}×${project.length}`,
+            unit: "m²",
+          },
+          {
+            icon: <Layers size={14} />,
+            value: project.floors,
+            unit: "Tầng",
+          },
+          {
+            icon: <BedDouble size={14} />,
+            value: project.bedrooms,
+            unit: "PN",
+          },
+          {
+            icon: <Wallet size={14} />,
+            value: formatBudget(project.budget),
+            unit: null,
+            accent: true,
+          },
+        ].map(({ icon, value, unit, accent }, i) => (
+          <div key={i} className="flex items-center gap-3">
+            {i > 0 && (
+              <span
+                className="h-3 w-px flex-shrink-0"
+                style={{ background: "rgba(255,255,255,0.10)" }}
+              />
+            )}
+            <div className="flex items-center gap-1.5 flex-shrink-0">
+              <span style={{ color: accent ? "rgba(255,160,60,0.75)" : "rgba(148,163,184,0.5)" }}>
+                {icon}
+              </span>
+              <span
+                className="text-[12px] leading-none"
+                style={{ color: accent ? "rgba(255,160,60,0.9)" : "rgba(148,163,184,0.75)" }}
+              >
+                <span className="font-medium" style={{ color: accent ? "rgba(255,170,70,1)" : "rgba(220,230,240,0.85)" }}>
+                  {value}
+                </span>
+                {unit && (
+                  <span className="ml-0.5" style={{ color: "rgba(148,163,184,0.55)" }}>
+                    {unit}
+                  </span>
+                )}
+              </span>
+            </div>
           </div>
         ))}
       </div>

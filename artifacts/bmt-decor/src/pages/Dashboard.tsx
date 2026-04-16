@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
@@ -117,11 +117,13 @@ export default function Dashboard() {
     retry: false,
   });
 
-  // Redirect to login if session expired
-  if (isError && (error as Error).message === "401") {
-    setLocation("/login");
-    return null;
-  }
+  useEffect(() => {
+    if (isError && (error as Error).message === "401") {
+      setLocation("/login");
+    }
+  }, [isError, error, setLocation]);
+
+  const is401 = isError && (error as Error).message === "401";
 
   const filtered = (projects ?? []).filter((p) =>
     p.title.toLowerCase().includes(searchQuery.toLowerCase())
@@ -256,7 +258,7 @@ export default function Dashboard() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {isLoading && Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} index={i} />)}
 
-          {isError && !((error as Error).message === "401") && (
+          {isError && !is401 && (
             <div className="col-span-full text-center py-20">
               <p className="text-sm" style={{ color: "rgba(255,100,100,0.7)" }}>Không thể tải danh sách dự án. Vui lòng thử lại.</p>
             </div>
