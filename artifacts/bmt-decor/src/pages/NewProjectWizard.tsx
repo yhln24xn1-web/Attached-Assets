@@ -495,7 +495,7 @@ export default function NewProjectWizard() {
             ? "Bước 2.1 — hoàn tất yêu cầu để AI phân tích"
             : step === 5
             ? "Bước 2.2 — xác nhận trước khi AI sinh layout"
-            : "Bước 3 — AI đang sinh mặt bằng kiến trúc"}
+            : "Bước 3 — hệ thống đang xử lý bản vẽ kỹ thuật"}
         </p>
       </main>
     </div>
