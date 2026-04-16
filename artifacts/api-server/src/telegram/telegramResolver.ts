@@ -8,7 +8,7 @@ interface TelegramMessageLite {
   };
 }
 
-const JOB_ID_REGEX = /JOB\s*ID\s*[:#-]?\s*(\d+)/i;
+const JOB_ID_REGEX = /JOB\s{0,3}ID\s*[:#-]?\s*(\d+)/i;
 
 function parseJobId(text?: string): number | null {
   if (!text) return null;
@@ -33,7 +33,7 @@ export async function resolveProjectFromTelegramMessage(
   }
 
   const jobId = parseJobId(message.caption ?? message.text);
-  if (jobId != null) {
+  if (jobId !== null) {
     const matchedByJobId = projects.find((project) => project.id === jobId);
     if (matchedByJobId) {
       return { projectId: String(matchedByJobId.id), project: matchedByJobId };

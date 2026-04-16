@@ -1,9 +1,14 @@
-import fs from "fs";
+import fs from "fs/promises";
+import path from "path";
 import { Router, type Request } from "express";
 import { getSession } from "../lib/session";
 import { runLayoutSkill, buildLayoutInput } from "../layout-skill/index";
 import { buildCadSchema } from "../services/cadSchemaBuilder";
-import { resolveCadProjectFilePath, saveCadSchemaFile } from "../services/cadStorageService";
+import {
+  getCadProjectDirPath,
+  resolveCadProjectFilePath,
+  saveCadSchemaFile,
+} from "../services/cadStorageService";
 import { sendCadSchemaToAdmin } from "../services/cadTelegramService";
 import {
   createInitialCadResult,
@@ -128,6 +133,7 @@ export const PROJECTS: Project[] = [
 ];
 
 let nextId = 7;
+const CAD_IN_PROGRESS_STATUSES = ["generating_json", "sending_to_admin", "receiving_admin_cad"] as const;
 
 function getProjectAndAuthorize(req: Request) {
   const user = getSession(req);
@@ -229,7 +235,7 @@ router.get("/:id", (req, res) => {
 
 // ── GET /api/projects/:id/cad-files/:fileName ────────────────────────────────
 
-router.get("/:id/cad-files/:fileName", (req, res) => {
+router.get("/:id/cad-files/:fileName", async (req, res) => {
   const lookup = getProjectAndAuthorize(req);
   if (lookup.error) {
     res.status(lookup.error.status).json({ message: lookup.error.message });
@@ -237,14 +243,44 @@ router.get("/:id/cad-files/:fileName", (req, res) => {
   }
 
   const fileName = decodeURIComponent(req.params["fileName"] ?? "");
-  const filePath = resolveCadProjectFilePath(lookup.project.id, fileName);
+  if (fileName.includes("\0") || fileName.includes("..") || fileName.includes("/") || fileName.includes("\\")) {
+    res.status(400).json({ message: "Đường dẫn tệp không hợp lệ" });
+    return;
+  }
 
-  if (!fs.existsSync(filePath)) {
+  let normalizedProjectDir = "";
+  let normalizedFilePath = "";
+
+  try {
+    const filePath = resolveCadProjectFilePath(lookup.project.id, fileName);
+    const projectDir = getCadProjectDirPath(lookup.project.id);
+    normalizedProjectDir = path.resolve(projectDir) + path.sep;
+    normalizedFilePath = path.resolve(filePath);
+  } catch {
+    res.status(400).json({ message: "Đường dẫn tệp không hợp lệ" });
+    return;
+  }
+
+  const relativePath = path.relative(normalizedProjectDir, normalizedFilePath);
+  if (relativePath.startsWith("..") || path.isAbsolute(relativePath)) {
+    res.status(400).json({ message: "Đường dẫn tệp không hợp lệ" });
+    return;
+  }
+
+  try {
+    await fs.access(normalizedFilePath);
+    const realFilePath = await fs.realpath(normalizedFilePath);
+    const realProjectDir = await fs.realpath(path.resolve(getCadProjectDirPath(lookup.project.id)));
+    if (!realFilePath.startsWith(`${realProjectDir}${path.sep}`)) {
+      res.status(400).json({ message: "Đường dẫn tệp không hợp lệ" });
+      return;
+    }
+  } catch {
     res.status(404).json({ message: "Tệp không tồn tại" });
     return;
   }
 
-  res.sendFile(filePath);
+  res.sendFile(normalizedFilePath);
 });
 
 // ── POST /api/projects ────────────────────────────────────────────────────────
@@ -318,6 +354,10 @@ router.post("/:id/process-step-3", async (req, res) => {
   try {
     if (project.cadResult.status === "pending_admin_cad" || project.cadResult.status === "completed") {
       res.json({ ok: true, status: project.cadResult.status });
+      return;
+    }
+    if (CAD_IN_PROGRESS_STATUSES.includes(project.cadResult.status as (typeof CAD_IN_PROGRESS_STATUSES)[number])) {
+      res.status(409).json({ ok: false, status: project.cadResult.status, message: "Đang xử lý bản vẽ kỹ thuật" });
       return;
     }
 

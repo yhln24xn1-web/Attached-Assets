@@ -7,7 +7,7 @@ import { STEP3_PROGRESS_MESSAGES } from "@/components/step3/progressMessages";
 import { useProjectPolling } from "@/hooks/useProjectPolling";
 import { useStep3CadProcess } from "@/hooks/useStep3CadProcess";
 
-const MAX_FAKE_PROGRESS_MS = 10 * 60 * 1000;
+const MAX_SIMULATED_PROGRESS_MS = 10 * 60 * 1000;
 
 interface Props {
   projectId: number;
@@ -15,9 +15,14 @@ interface Props {
 }
 
 function resolveProgressMessage(progress: number): string {
-  const matched = [...STEP3_PROGRESS_MESSAGES]
-    .reverse()
-    .find((item) => progress >= item.percent);
+  let matched: (typeof STEP3_PROGRESS_MESSAGES)[number] = STEP3_PROGRESS_MESSAGES[0];
+  for (let index = STEP3_PROGRESS_MESSAGES.length - 1; index >= 0; index -= 1) {
+    const item = STEP3_PROGRESS_MESSAGES[index];
+    if (progress >= item.percent) {
+      matched = item;
+      break;
+    }
+  }
 
   return matched?.text ?? STEP3_PROGRESS_MESSAGES[0].text;
 }
@@ -49,9 +54,9 @@ export default function Step3LayoutGeneration({ projectId, onApprove }: Props) {
       return;
     }
 
-    if (startedAt == null) {
-      setStartedAt(Date.now());
-    }
+      if (startedAt === null) {
+        setStartedAt(Date.now());
+      }
   }, [hasAutoStarted, processStep3, project, startedAt]);
 
   const progressState = useMemo(() => {
@@ -59,19 +64,19 @@ export default function Step3LayoutGeneration({ projectId, onApprove }: Props) {
       return { progress: 100, message: "Hoàn tất" };
     }
 
-    if (!startedAt) {
+    if (startedAt === null) {
       return { progress: 1, message: STEP3_PROGRESS_MESSAGES[0].text };
     }
 
     const elapsed = now - startedAt;
-    if (elapsed > MAX_FAKE_PROGRESS_MS) {
+    if (elapsed > MAX_SIMULATED_PROGRESS_MS) {
       return {
         progress: 90,
         message: "Hệ thống đang hoàn thiện bản vẽ kỹ thuật...",
       };
     }
 
-    const ratio = Math.max(0, Math.min(1, elapsed / MAX_FAKE_PROGRESS_MS));
+    const ratio = Math.max(0, Math.min(1, elapsed / MAX_SIMULATED_PROGRESS_MS));
     const progress = Math.max(1, Math.min(90, Math.floor(1 + ratio * 89)));
 
     return {

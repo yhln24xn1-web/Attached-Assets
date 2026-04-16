@@ -24,7 +24,7 @@ export function useProjectPolling(projectId: number | null) {
   return useQuery<ProjectPollingState>({
     queryKey: ["project", projectId],
     queryFn: () => apiFetch<ProjectPollingState>(`/api/projects/${projectId}`),
-    enabled: projectId != null,
+    enabled: projectId !== null,
     refetchInterval: (query) => {
       const data = query.state.data;
       if (!data) return 3000;

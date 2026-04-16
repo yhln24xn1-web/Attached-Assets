@@ -11,6 +11,10 @@ function getCadProjectDir(projectId: string | number) {
   return path.join(getCadRootDir(), String(projectId));
 }
 
+export function getCadProjectDirPath(projectId: string | number): string {
+  return getCadProjectDir(projectId);
+}
+
 async function ensureProjectDir(projectId: string | number) {
   const projectDir = getCadProjectDir(projectId);
   await fs.mkdir(projectDir, { recursive: true });
@@ -18,8 +22,9 @@ async function ensureProjectDir(projectId: string | number) {
 }
 
 function extByMime(mimeType: string): string {
-  if (mimeType.includes("png")) return "png";
-  if (mimeType.includes("webp")) return "webp";
+  if (mimeType === "image/png") return "png";
+  if (mimeType === "image/webp") return "webp";
+  if (mimeType === "image/jpeg" || mimeType === "image/jpg") return "jpg";
   return "jpg";
 }
 
@@ -29,7 +34,7 @@ export async function saveCadSchemaFile(projectId: string | number, schema: CadS
   url: string;
 }> {
   const projectDir = await ensureProjectDir(projectId);
-  const fileName = `cad-schema-${Date.now()}.json`;
+  const fileName = `cad-schema-${randomUUID()}.json`;
   const filePath = path.join(projectDir, fileName);
 
   await fs.writeFile(filePath, JSON.stringify(schema, null, 2), "utf-8");
@@ -52,7 +57,7 @@ export async function saveCadDrawingImage(projectId: string | number, input: {
 }): Promise<CadDrawingItem> {
   const projectDir = await ensureProjectDir(projectId);
   const ext = extByMime(input.mimeType);
-  const fileName = `cad-drawing-${Date.now()}-${randomUUID()}.${ext}`;
+  const fileName = `cad-drawing-${randomUUID()}.${ext}`;
   const filePath = path.join(projectDir, fileName);
 
   await fs.writeFile(filePath, input.buffer);
@@ -70,6 +75,9 @@ export async function saveCadDrawingImage(projectId: string | number, input: {
 }
 
 export function resolveCadProjectFilePath(projectId: string | number, fileName: string): string {
-  const safeFileName = path.basename(fileName);
+  const safeFileName = path.basename(fileName).trim();
+  if (!safeFileName || !/^[a-zA-Z0-9_-]+(?:\.[a-zA-Z0-9_-]+)?$/.test(safeFileName)) {
+    throw new Error("Invalid CAD file name");
+  }
   return path.join(getCadProjectDir(projectId), safeFileName);
 }
