@@ -1,13 +1,18 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, Sparkles, CheckCircle2, MessageSquareText, ClipboardList } from "lucide-react";
+import {
+  ArrowLeft, Sparkles, CheckCircle2,
+  MessageSquareText, ClipboardList, LayoutGrid,
+} from "lucide-react";
 import Step1Sub1BasicInfo        from "@/components/wizard/Step1Sub1BasicInfo";
 import Step1Sub2Architecture     from "@/components/wizard/Step1Sub2Architecture";
 import Step1Sub3References       from "@/components/wizard/Step1Sub3References";
 import Step2ChatRequirements     from "@/components/wizard/Step2ChatRequirements";
 import Step2Confirmation         from "@/components/wizard/Step2Confirmation";
+import Step3LayoutGeneration     from "@/components/wizard/Step3LayoutGeneration";
 import { formatBudget }          from "@/components/wizard/calculation";
+import { useCreateProject }      from "@/hooks/useProjectProcess";
 import type {
   BasicInfoFormValues,
   ArchitectureFormValues,
@@ -19,12 +24,12 @@ import type {
 
 // ── Wizard step config ────────────────────────────────────────────────────────
 
-type InternalStep = 1 | 2 | 3 | 4 | 5;
+type InternalStep = 1 | 2 | 3 | 4 | 5 | 6;
 
 const MAJOR_PHASES = [
   { id: 1, label: "Thông tin", internalSteps: [1, 2, 3] as number[] },
   { id: 2, label: "Yêu cầu",   internalSteps: [4, 5]   as number[] },
-  { id: 3, label: "Phân tích", internalSteps: []        as number[] },
+  { id: 3, label: "Phân tích", internalSteps: [6]       as number[] },
 ];
 
 const SUB_STEP_LABELS: Record<number, string> = {
@@ -50,34 +55,35 @@ function getMajorPhase(step: InternalStep): number {
 function buildChatAnswersRecord(output: Step2ChatOutput): Record<string, string> {
   const d = output.extractedData;
   const f: FollowupAnswers = output.followupAnswers;
-
   const answers: Record<string, string> = {};
-  answers["Kiểu xây dựng"]        = d.wantsFullBuild ? "Xây hết đất" : "Chừa sân";
+
+  answers["Kiểu xây dựng"]      = d.wantsFullBuild ? "Xây hết đất" : "Chừa sân";
   if (!d.wantsFullBuild && d.setback !== null) {
-    answers["Khoảng chừa sân"]    = `${d.setback}m`;
+    answers["Khoảng chừa sân"]  = `${d.setback}m`;
   }
-  answers["Chiều dài xây dựng"]   = `${d.buildLength.toFixed(1)}m`;
-  answers["Tổng DTXD"]            = `${d.totalConstructionArea.toFixed(1)}m²`;
-  answers["Ngân sách đề xuất"]    = formatBudget(d.updatedBudget);
+  answers["Chiều dài XD"]       = `${d.buildLength.toFixed(1)}m`;
+  answers["Tổng DTXD"]          = `${d.totalConstructionArea.toFixed(1)}m²`;
+  answers["Ngân sách đề xuất"]  = formatBudget(d.updatedBudget);
   if (d.userAcceptedBudget !== null) {
-    answers["Ngân sách"]          = d.userAcceptedBudget ? "Đồng ý" : "Cần điều chỉnh";
+    answers["Ngân sách"]        = d.userAcceptedBudget ? "Đồng ý" : "Cần điều chỉnh";
   }
-  if (f.garage    !== undefined) answers["Gara xe"]          = f.garage    ? "Có" : "Không";
-  if (f.altarRoom !== undefined) answers["Phòng thờ"]        = f.altarRoom ? "Có" : "Không";
-  if (f.office    !== undefined) answers["Phòng làm việc"]   = f.office    ? "Có" : "Không";
-  if (f.skylight  !== undefined) answers["Giếng trời"]       = f.skylight  ? "Có" : "Không";
-  if (f.backYard  !== undefined) answers["Sân sau"]          = f.backYard  ? "Có" : "Không";
+  if (f.garage    !== undefined) answers["Gara xe"]         = f.garage    ? "Có" : "Không";
+  if (f.altarRoom !== undefined) answers["Phòng thờ"]       = f.altarRoom ? "Có" : "Không";
+  if (f.office    !== undefined) answers["Phòng làm việc"]  = f.office    ? "Có" : "Không";
+  if (f.skylight  !== undefined) answers["Giếng trời"]      = f.skylight  ? "Có" : "Không";
+  if (f.backYard  !== undefined) answers["Sân sau"]         = f.backYard  ? "Có" : "Không";
   return answers;
 }
 
 // ── Header metadata ───────────────────────────────────────────────────────────
 
 const STEP_HEADER: Record<InternalStep, { title: string; sub: string; icon: React.ReactNode }> = {
-  1: { title: "Thông tin dự án",    sub: "Nhập thông tin cơ bản để bắt đầu hành trình",      icon: <Sparkles       className="w-5 h-5" style={{ color: "#ff7b00" }} /> },
-  2: { title: "Kiến trúc & Nội thất", sub: "Chọn phong cách kiến trúc phù hợp với không gian", icon: <Sparkles    className="w-5 h-5" style={{ color: "#ff7b00" }} /> },
-  3: { title: "Tài liệu tham khảo", sub: "Tải lên bản vẽ, ảnh hiện trạng và tài liệu",       icon: <Sparkles       className="w-5 h-5" style={{ color: "#ff7b00" }} /> },
-  4: { title: "Yêu cầu chi tiết",   sub: "Trò chuyện với AI để xác định thông số xây dựng",   icon: <MessageSquareText className="w-5 h-5" style={{ color: "#ff7b00" }} /> },
-  5: { title: "Xác nhận dữ liệu",   sub: "Kiểm tra toàn bộ thông tin trước khi AI sinh layout", icon: <ClipboardList className="w-5 h-5" style={{ color: "#ff7b00" }} /> },
+  1: { title: "Thông tin dự án",      sub: "Nhập thông tin cơ bản để bắt đầu hành trình",       icon: <Sparkles          className="w-5 h-5" style={{ color: "#ff7b00" }} /> },
+  2: { title: "Kiến trúc & Nội thất", sub: "Chọn phong cách kiến trúc phù hợp với không gian",  icon: <Sparkles          className="w-5 h-5" style={{ color: "#ff7b00" }} /> },
+  3: { title: "Tài liệu tham khảo",   sub: "Tải lên bản vẽ, ảnh hiện trạng và tài liệu",        icon: <Sparkles          className="w-5 h-5" style={{ color: "#ff7b00" }} /> },
+  4: { title: "Yêu cầu chi tiết",     sub: "Trò chuyện với AI để xác định thông số xây dựng",    icon: <MessageSquareText className="w-5 h-5" style={{ color: "#ff7b00" }} /> },
+  5: { title: "Xác nhận dữ liệu",     sub: "Kiểm tra toàn bộ thông tin trước khi AI sinh layout", icon: <ClipboardList    className="w-5 h-5" style={{ color: "#ff7b00" }} /> },
+  6: { title: "AI Sinh Mặt Bằng",     sub: "AI đang phân tích dữ liệu và tạo layout tối ưu",    icon: <LayoutGrid        className="w-5 h-5" style={{ color: "#ff7b00" }} /> },
 };
 
 // ── Step indicator ────────────────────────────────────────────────────────────
@@ -139,11 +145,9 @@ function SubStepDots({ currentInternal }: { currentInternal: InternalStep }) {
                 width:      currentInternal === s ? 16 : 6,
                 height:     6,
                 background:
-                  currentInternal > s
-                    ? "rgba(34,197,94,0.5)"
-                    : currentInternal === s
-                    ? "#ff7b00"
-                    : "rgba(255,255,255,0.1)",
+                  currentInternal > s ? "rgba(34,197,94,0.5)"
+                  : currentInternal === s ? "#ff7b00"
+                  : "rgba(255,255,255,0.1)",
               }}
             />
             {currentInternal === s && (
@@ -168,11 +172,9 @@ function SubStepDots({ currentInternal }: { currentInternal: InternalStep }) {
                 width:      currentInternal === s ? 16 : 6,
                 height:     6,
                 background:
-                  currentInternal > s
-                    ? "rgba(34,197,94,0.5)"
-                    : currentInternal === s
-                    ? "#ff7b00"
-                    : "rgba(255,255,255,0.1)",
+                  currentInternal > s ? "rgba(34,197,94,0.5)"
+                  : currentInternal === s ? "#ff7b00"
+                  : "rgba(255,255,255,0.1)",
               }}
             />
             {currentInternal === s && (
@@ -182,6 +184,18 @@ function SubStepDots({ currentInternal }: { currentInternal: InternalStep }) {
             )}
           </div>
         ))}
+      </div>
+    );
+  }
+
+  if (currentInternal === 6) {
+    return (
+      <div className="flex items-center gap-1.5 mt-1">
+        <div
+          className="rounded-full transition-all duration-300"
+          style={{ width: 16, height: 6, background: "#ff7b00" }}
+        />
+        <span className="text-[10px]" style={{ color: "rgba(255,255,255,0.35)" }}>Đang sinh layout</span>
       </div>
     );
   }
@@ -201,35 +215,38 @@ const slide = {
 
 export default function NewProjectWizard() {
   const [, setLocation] = useLocation();
-  const [step,      setStep]      = useState<InternalStep>(1);
-  const [direction, setDirection] = useState(1);
-  const [wizardData, setWizardData] = useState<WizardData>({
+  const [step,        setStep]        = useState<InternalStep>(1);
+  const [direction,   setDirection]   = useState(1);
+  const [projectId,   setProjectId]   = useState<number | null>(null);
+  const [wizardData,  setWizardData]  = useState<WizardData>({
     basicInfo:        null,
     architecture:     null,
     references:       null,
     chatRequirements: null,
   });
 
+  const createProject = useCreateProject();
+
   function goTo(next: InternalStep, dir: number) {
     setDirection(dir);
     setStep(next);
   }
 
-  // ── Step handlers ───────────────────────────────────────────────────────────
+  // ── Step handlers ────────────────────────────────────────────────────────
 
   function handleBasicInfoNext(data: BasicInfoFormValues) {
     setWizardData((p) => ({ ...p, basicInfo: data }));
     goTo(2, 1);
   }
 
-  function handleArchBack()                          { goTo(1, -1); }
-  function handleArchNext(data: ArchitectureFormValues) {
+  function handleArchBack()                                { goTo(1, -1); }
+  function handleArchNext(data: ArchitectureFormValues)    {
     setWizardData((p) => ({ ...p, architecture: data }));
     goTo(3, 1);
   }
 
-  function handleRefsBack()                          { goTo(2, -1); }
-  function handleRefsNext(data: ReferencesFormValues) {
+  function handleRefsBack()                                { goTo(2, -1); }
+  function handleRefsNext(data: ReferencesFormValues)      {
     setWizardData((p) => ({ ...p, references: data }));
     goTo(4, 1);
   }
@@ -239,59 +256,94 @@ export default function NewProjectWizard() {
     goTo(5, 1);
   }
 
-  function handleConfirmBack()                       { goTo(4, -1); }
-  function handleConfirmSubmit() {
-    console.log("✅ Wizard complete:", wizardData);
+  function handleConfirmBack() { goTo(4, -1); }
+
+  async function handleConfirmSubmit() {
+    const bi   = wizardData.basicInfo;
+    const arch = wizardData.architecture;
+    const refs = wizardData.references;
+    const chat = wizardData.chatRequirements;
+
+    const payload = {
+      basicInfo: bi,
+      architecture: arch ? {
+        architectureName: arch.architectureName,
+        style:            arch.style,
+        category:         arch.category,
+      } : undefined,
+      references: refs?.files.map((f) => ({
+        id:                f.id,
+        name:              f.name,
+        type:              f.metadata.documentType,
+        priority:          f.metadata.priority,
+        interpretationMode: f.metadata.interpretationMode,
+        appliesToFloors:   f.metadata.appliesToFloors,
+        url:               f.url ?? "",
+        note:              f.metadata.note,
+      })),
+      chatRequirements: chat ? {
+        extractedData:   chat.extractedData,
+        followupAnswers: chat.followupAnswers,
+      } : undefined,
+    };
+
+    try {
+      const result = await createProject.mutateAsync(payload);
+      setProjectId(result.id);
+      goTo(6, 1);
+    } catch {
+      // Fallback: still proceed to step 6 with a fake ID for demo purposes
+      setProjectId(-1);
+      goTo(6, 1);
+    }
+  }
+
+  function handleApprove() {
     setLocation("/dashboard");
   }
 
-  // ── Build confirmation props ────────────────────────────────────────────────
+  // ── Confirmation props ───────────────────────────────────────────────────
 
   const bi   = wizardData.basicInfo;
   const arch = wizardData.architecture;
   const refs = wizardData.references;
   const chat = wizardData.chatRequirements;
 
-  const confirmProject = bi
-    ? {
-        title:         bi.projectName,
-        landWidth:     bi.lotWidth,
-        landLength:    bi.lotLength,
-        floors:        bi.floors,
-        bedrooms:      bi.bedrooms,
-        bathrooms:     bi.bathrooms,
-        budget:        chat ? chat.extractedData.updatedBudget : bi.budget,
-        architecture:  arch ? { name: arch.architectureName } : undefined,
-        interiorStyle: arch?.style,
-      }
-    : null;
+  const confirmProject = bi ? {
+    title:         bi.projectName,
+    landWidth:     bi.lotWidth,
+    landLength:    bi.lotLength,
+    floors:        bi.floors,
+    bedrooms:      bi.bedrooms,
+    bathrooms:     bi.bathrooms,
+    budget:        chat ? chat.extractedData.updatedBudget : bi.budget,
+    architecture:  arch ? { name: arch.architectureName } : undefined,
+    interiorStyle: arch?.style,
+  } : null;
 
   const confirmChatAnswers = chat ? buildChatAnswersRecord(chat) : {};
+  const confirmFiles       = refs?.files.map((f) => ({ name: f.name, size: f.size }));
 
-  const confirmFiles = refs?.files.map((f) => ({ name: f.name, size: f.size }));
+  // ── Render ───────────────────────────────────────────────────────────────
 
-  // ── Render ──────────────────────────────────────────────────────────────────
-
-  const header = STEP_HEADER[step];
+  const header    = STEP_HEADER[step];
+  const isStep6   = step === 6;
 
   return (
     <div className="min-h-screen relative" style={{ background: "#0a0e16" }}>
       <div
         className="absolute inset-0 pointer-events-none"
-        style={{
-          background:
-            "radial-gradient(ellipse 70% 40% at 50% 0%, rgba(255,100,0,0.06) 0%, transparent 70%)",
-        }}
+        style={{ background: "radial-gradient(ellipse 70% 40% at 50% 0%, rgba(255,100,0,0.06) 0%, transparent 70%)" }}
       />
 
-      {/* ── Header ───────────────────────────────────────────────────────── */}
+      {/* ── Header ─────────────────────────────────────────────────────── */}
       <header
         className="sticky top-0 z-40 px-4 sm:px-6"
         style={{
-          background:   "rgba(10,14,22,0.88)",
-          backdropFilter: "blur(16px)",
+          background:       "rgba(10,14,22,0.88)",
+          backdropFilter:   "blur(16px)",
           WebkitBackdropFilter: "blur(16px)",
-          borderBottom: "1px solid rgba(255,255,255,0.05)",
+          borderBottom:     "1px solid rgba(255,255,255,0.05)",
         }}
       >
         <div className="max-w-2xl mx-auto flex items-center justify-between h-16 gap-4">
@@ -303,23 +355,18 @@ export default function NewProjectWizard() {
             <ArrowLeft className="w-4 h-4" />
             <span className="hidden sm:block">Dashboard</span>
           </button>
-
           <StepIndicator currentInternal={step} />
-
           <div
             className="w-8 h-8 rounded-xl flex items-center justify-center font-black text-white text-sm flex-shrink-0"
-            style={{
-              background: "linear-gradient(135deg, #ff7b00, #ff4500)",
-              boxShadow:  "0 0 14px rgba(255,100,0,0.4)",
-            }}
+            style={{ background: "linear-gradient(135deg, #ff7b00, #ff4500)", boxShadow: "0 0 14px rgba(255,100,0,0.4)" }}
           >
             B
           </div>
         </div>
       </header>
 
-      {/* ── Main content ─────────────────────────────────────────────────── */}
-      <main className="max-w-2xl mx-auto px-4 sm:px-6 py-6">
+      {/* ── Main content ───────────────────────────────────────────────── */}
+      <main className={`mx-auto px-4 sm:px-6 py-6 ${isStep6 ? "max-w-3xl" : "max-w-2xl"}`}>
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -328,10 +375,7 @@ export default function NewProjectWizard() {
         >
           <div
             className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5"
-            style={{
-              background: "rgba(255,123,0,0.1)",
-              border:     "1px solid rgba(255,123,0,0.2)",
-            }}
+            style={{ background: "rgba(255,123,0,0.1)", border: "1px solid rgba(255,123,0,0.2)" }}
           >
             <AnimatePresence mode="wait">
               <motion.div
@@ -370,12 +414,12 @@ export default function NewProjectWizard() {
         <div
           className="rounded-2xl"
           style={{
-            background:   "rgba(15,19,28,0.7)",
-            backdropFilter: "blur(12px)",
+            background:       "rgba(15,19,28,0.7)",
+            backdropFilter:   "blur(12px)",
             WebkitBackdropFilter: "blur(12px)",
-            border:       "1px solid rgba(255,255,255,0.07)",
-            boxShadow:    "0 12px 48px rgba(0,0,0,0.4)",
-            padding:      step === 4 ? "20px 16px" : step === 5 ? "20px" : "24px",
+            border:           "1px solid rgba(255,255,255,0.07)",
+            boxShadow:        "0 12px 48px rgba(0,0,0,0.4)",
+            padding:          step === 4 ? "20px 16px" : step === 5 ? "20px" : step === 6 ? "24px" : "24px",
           }}
         >
           <AnimatePresence mode="wait" custom={direction}>
@@ -425,6 +469,16 @@ export default function NewProjectWizard() {
                   sheetUrl={refs?.sheetUrl}
                   onBack={handleConfirmBack}
                   onConfirm={handleConfirmSubmit}
+                  isPending={createProject.isPending}
+                />
+              </motion.div>
+            )}
+
+            {step === 6 && projectId != null && (
+              <motion.div key="s6" custom={direction} variants={slide} initial="enter" animate="center" exit="exit" transition={{ duration: 0.3, ease: "easeInOut" }}>
+                <Step3LayoutGeneration
+                  projectId={projectId}
+                  onApprove={handleApprove}
                 />
               </motion.div>
             )}
@@ -439,7 +493,9 @@ export default function NewProjectWizard() {
             ? `Bước 1.${step} / 3 — dữ liệu được lưu khi quay lại`
             : step === 4
             ? "Bước 2.1 — hoàn tất yêu cầu để AI phân tích"
-            : "Bước 2.2 — xác nhận trước khi AI sinh layout"}
+            : step === 5
+            ? "Bước 2.2 — xác nhận trước khi AI sinh layout"
+            : "Bước 3 — AI đang sinh mặt bằng kiến trúc"}
         </p>
       </main>
     </div>

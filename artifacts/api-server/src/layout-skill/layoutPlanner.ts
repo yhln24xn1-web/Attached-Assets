@@ -3,39 +3,28 @@ import type { LayoutRuleBundle } from "./ruleBundle";
 import { STAIR_PRESETS, DEFAULT_STAIR_TYPE, ROOM_NAME_MAP } from "./constants";
 import { EXTERIOR_WALL_THICKNESS } from "../rules/constants";
 
-interface Footprint {
-  width: number;
-  depth: number;
-}
+interface Footprint { width: number; depth: number; }
 
-/** Map special key to room type string. */
+/** Map special key to room type. */
 function specialToType(s: string): string {
   const map: Record<string, string> = {
-    garage:     "garage",
-    back_yard:  "back_yard",
-    altar_room: "altar_room",
-    office:     "office",
-    shaft:      "shaft",
-    skylight:   "shaft",
-    terrace:    "terrace",
-    laundry:    "laundry",
+    garage: "garage", back_yard: "back_yard", altar_room: "altar_room",
+    office: "office", shaft: "shaft", skylight: "shaft",
+    terrace: "terrace", laundry: "laundry",
   };
   return map[s] ?? s;
-}
-
-/** Get Vietnamese room name, falling back to type if unknown. */
-function roomName(type: string, index = 0): string {
-  const base = ROOM_NAME_MAP[type] ?? type;
-  if (["bedroom", "bathroom"].includes(type) && index > 0) {
-    return `${base} ${index + 1}`;
-  }
-  return base;
 }
 
 /** Round to 2 decimal places. */
 function r2(v: number): number { return Math.round(v * 100) / 100; }
 
-/** Plan ground floor rooms (front to rear). */
+/** Clamp value min..max. */
+function clamp(v: number, lo: number, hi: number): number {
+  return Math.min(hi, Math.max(lo, v));
+}
+
+// ── Ground floor ───────────────────────────────────────────────────────────────
+
 function planGroundFloor(
   detail:    FloorDetail,
   fp:        Footprint,
@@ -46,20 +35,20 @@ function planGroundFloor(
   hasGarage: boolean,
 ): PlannedRoom[] {
   const rooms: PlannedRoom[] = [];
-  const bw  = fp.width;
-  const bd  = fp.depth;
-  let   y   = 0;
+  const bw   = fp.width;
+  const bd   = fp.depth;
+  let   y    = 0;
 
-  // ── Stair core (fixed, rear) ─────────────────────────────────────────
+  // ── Stair core (fixed, rear-right) ──────────────────────────────────
   rooms.push({
     id: "f0_stair", type: "stair", name: "Cầu thang",
     x: stairX, y: stairY, width: stairW, depth: stairD,
     floor: 0, isFixed: true,
   });
 
-  // ── Garage (front, full width) ───────────────────────────────────────
+  // ── Garage (front, full width) ────────────────────────────────────
   if (hasGarage) {
-    const garageD = r2(Math.min(5.0, stairY * 0.5));
+    const garageD = r2(clamp(5.0, 4.0, stairY * 0.5));
     rooms.push({
       id: "f0_garage", type: "garage", name: "Gara xe",
       x: 0, y, width: bw, depth: garageD, floor: 0,
@@ -67,21 +56,23 @@ function planGroundFloor(
     y += garageD;
   }
 
-  // ── Living room ───────────────────────────────────────────────────────
-  const livingD = r2(Math.min(4.5, stairY - y));
-  if (livingD > 1) {
+  // ── Living room (main column only: x=0 to stairX) ─────────────────
+  const usableW = stairX;
+  const livingD = r2(clamp(4.0, 2.0, stairY - y - 5.0));
+  if (livingD > 0) {
     rooms.push({
       id: "f0_living", type: "living_room", name: "Phòng khách",
-      x: 0, y, width: bw, depth: livingD, floor: 0,
+      x: 0, y, width: usableW, depth: livingD, floor: 0,
     });
     y += livingD;
   }
 
-  // ── Kitchen + Dining side-by-side ─────────────────────────────────────
-  const kdD  = r2(Math.min(3.5, stairY - y));
+  // ── Kitchen + Dining ───────────────────────────────────────────────
+  const kdRemaining = r2(stairY - y - 2.5); // leave room for WC
+  const kdD         = r2(clamp(3.0, 1.5, kdRemaining));
   if (kdD > 1) {
-    const kitW  = r2(bw * 0.55);
-    const dineW = r2(bw - kitW);
+    const kitW  = r2(usableW * 0.55);
+    const dineW = r2(usableW - kitW);
     rooms.push({
       id: "f0_kitchen", type: "kitchen", name: "Bếp",
       x: 0, y, width: kitW, depth: kdD, floor: 0,
@@ -93,23 +84,25 @@ function planGroundFloor(
     y += kdD;
   }
 
-  // ── Ground-floor WC (in stair column below stair) ────────────────────
-  const wcY = stairY + stairD;
-  const wcD = r2(Math.min(2.0, bd - wcY));
-  if (wcD > 0.8) {
+  // ── WC: place in main column (NOT in stair column) ─────────────────
+  const wcH = r2(clamp(2.0, 1.2, r2(stairY - y)));
+  if (wcH >= 1.2 && detail.wc > 0) {
+    const wcW = r2(clamp(1.5, 1.0, usableW * 0.4));
     rooms.push({
       id: "f0_wc", type: "bathroom", name: "WC",
-      x: stairX, y: wcY, width: stairW, depth: wcD, floor: 0,
+      x: r2(usableW - wcW), y, width: wcW, depth: wcH, floor: 0,
     });
+    y += wcH;
   }
 
-  // ── Special rooms on ground floor ────────────────────────────────────
-  const usableW = stairX;
+  // ── Special rooms: altar, office, back_yard, etc ────────────────
   for (let si = 0; si < detail.special.length; si++) {
     const sp   = detail.special[si];
     const type = specialToType(sp);
-    if (type === "garage") continue; // already placed
-    const spD = 3.0;
+    if (type === "garage") continue; // already placed above
+    const remainD = r2(stairY - y);
+    if (remainD < 1.0) break;
+    const spD = r2(clamp(3.0, 1.0, remainD));
     rooms.push({
       id: `f0_sp${si}`, type, name: ROOM_NAME_MAP[type] ?? type,
       x: 0, y, width: usableW, depth: spD, floor: 0,
@@ -117,36 +110,36 @@ function planGroundFloor(
     y += spD;
   }
 
-  void bd; // prevent unused warning
-
+  void bd; void bw;
   return rooms;
 }
 
-/** Plan one upper floor (index >= 1). */
+// ── Upper floor ────────────────────────────────────────────────────────────────
+
 function planUpperFloor(
-  detail:  FloorDetail,
-  fp:      Footprint,
-  stairX:  number,
-  stairY:  number,
-  stairW:  number,
-  stairD:  number,
+  detail:   FloorDetail,
+  fp:       Footprint,
+  stairX:   number,
+  stairY:   number,
+  stairW:   number,
+  stairD:   number,
   floorIdx: number,
 ): PlannedRoom[] {
   const rooms: PlannedRoom[] = [];
-  const bw = fp.width;
-  const bd = fp.depth;
-  const usableW = stairX; // column left of stair
+  const bw      = fp.width;
+  const bd      = fp.depth;
+  const usableW = stairX;
   let   y       = 0;
   const f       = floorIdx;
 
-  // ── Stair core (same x/y as ground floor) ───────────────────────────
+  // ── Stair core (fixed, same position as all floors) ─────────────
   rooms.push({
     id: `f${f}_stair`, type: "stair", name: "Cầu thang",
     x: stairX, y: stairY, width: stairW, depth: stairD,
     floor: f, isFixed: true,
   });
 
-  // ── Corridor ──────────────────────────────────────────────────────────
+  // ── Corridor ─────────────────────────────────────────────────────
   const corrD = 1.0;
   rooms.push({
     id: `f${f}_corridor`, type: "corridor", name: "Hành lang",
@@ -154,37 +147,58 @@ function planUpperFloor(
   });
   y += corrD;
 
-  const bdCount = detail.bedroom;
-  const wcCount = detail.wc;
-
-  // ── Master bedroom (first bedroom, floor 1 only) ─────────────────────
-  if (bdCount > 0) {
-    const masterH = r2(Math.min(4.5, stairY - y - 3.5));
-    const isOnlyBed = bdCount === 1;
-    const masterW = isOnlyBed ? usableW : r2(usableW * 0.55);
+  // ── Shaft (giếng trời): placed in STAIR COLUMN above the stair ─────
+  // The stair column (x=stairX..bw) is empty above stairY — use it as void
+  const shaftIdx = detail.special.findIndex((s) => s === "shaft" || s === "skylight");
+  let shaftPlaced = false;
+  if (shaftIdx >= 0 && stairY > corrD + 0.5) {
+    // Span from corrD to stairY in the stair column
+    const shaftY = r2(corrD);
+    const shaftH = r2(stairY - corrD);
     rooms.push({
-      id: `f${f}_bd0`, type: "master_bedroom", name: "Phòng ngủ chính",
-      x: 0, y, width: masterW, depth: Math.max(masterH, 3.0), floor: f,
+      id: `f${f}_shaft`, type: "shaft", name: "Giếng trời",
+      x: stairX, y: shaftY, width: stairW, depth: shaftH, floor: f, isFixed: true,
     });
-
-    // WC adjacent to master (if available width)
-    if (!isOnlyBed && wcCount > 0) {
-      const adjW = r2(usableW - masterW);
-      rooms.push({
-        id: `f${f}_wc0`, type: "bathroom", name: "WC",
-        x: masterW, y, width: adjW, depth: r2(Math.min(2.5, Math.max(masterH, 3.0))), floor: f,
-      });
-    }
-
-    y += Math.max(masterH, 3.0);
+    shaftPlaced = true;
   }
 
-  // ── Remaining bedrooms ────────────────────────────────────────────────
-  const remainBds  = Math.max(0, bdCount - 1);
-  const perRow     = remainBds <= 2 ? remainBds : 2;
-  if (remainBds > 0 && perRow > 0) {
-    const bdW = r2(usableW / perRow);
-    const bdD = r2(Math.min(3.8, (stairY - y) / Math.ceil(remainBds / perRow)));
+  const bdCount   = detail.bedroom;
+  const wcCount   = detail.wc;
+
+  // ── Master bedroom (first bedroom) ───────────────────────────────
+  if (bdCount > 0) {
+    const masterH  = r2(clamp(4.5, 3.0, stairY - y - 3.0));
+    const isOnly   = bdCount === 1;
+    const masterW  = isOnly ? usableW : r2(usableW * 0.56);
+
+    rooms.push({
+      id: `f${f}_bd0`, type: "master_bedroom", name: "Phòng ngủ chính",
+      x: 0, y, width: masterW, depth: masterH, floor: f,
+    });
+
+    // WC adjacent to master if room in column
+    if (wcCount > 0) {
+      const adjW = r2(usableW - masterW);
+      const adjH = r2(clamp(2.5, 1.5, masterH));
+      if (!isOnly && adjW > 0.8) {
+        rooms.push({
+          id: `f${f}_wc0`, type: "bathroom", name: "WC",
+          x: masterW, y, width: adjW, depth: adjH, floor: f,
+        });
+      }
+    }
+
+    y += masterH;
+  }
+
+  // ── Remaining bedrooms ────────────────────────────────────────────
+  const remainBds = Math.max(0, bdCount - 1);
+  if (remainBds > 0) {
+    const perRow   = remainBds <= 2 ? remainBds : 2;
+    const rows     = Math.ceil(remainBds / perRow);
+    const bdW      = r2(usableW / perRow);
+    const totalBdH = r2(clamp(rows * 3.8, rows * 3.0, stairY - y));
+    const bdH      = r2(totalBdH / rows);
 
     for (let i = 0; i < remainBds; i++) {
       const col = i % perRow;
@@ -192,65 +206,64 @@ function planUpperFloor(
       rooms.push({
         id:    `f${f}_bd${i + 1}`,
         type:  "bedroom",
-        name:  roomName("bedroom", i + 1),
-        x:     col * bdW,
-        y:     y + row * Math.max(bdD, 3.0),
+        name:  `Phòng ngủ ${i + 2}`,
+        x:     r2(col * bdW),
+        y:     r2(y + row * bdH),
         width: bdW,
-        depth: Math.max(bdD, 3.0),
+        depth: bdH,
         floor: f,
       });
     }
-    y += Math.ceil(remainBds / perRow) * Math.max(bdD, 3.0);
+    y += totalBdH;
   }
 
-  // ── Additional WC (below stair or in remaining space) ────────────────
-  const startWcIdx = bdCount > 0 && !rooms.find((r) => r.id === `f${f}_wc0`) ? 0 : 1;
-  const wcStairY   = stairY + stairD;
-  const wcSpaceD   = r2(Math.min(2.0, bd - wcStairY));
-
-  for (let i = startWcIdx; i < wcCount && wcSpaceD > 0.5; i++) {
+  // ── Additional WC (below master WC area, in main column) ──────────
+  const startWcIdx = rooms.some((r) => r.id === `f${f}_wc0`) ? 1 : 0;
+  for (let i = startWcIdx; i < wcCount; i++) {
+    const wcW = r2(clamp(1.5, 1.0, usableW / 2));
+    const wcH = r2(clamp(2.0, 1.2, stairY - y));
+    if (wcH < 1.0) break;
     rooms.push({
-      id: `f${f}_wc${i}`, type: "bathroom", name: roomName("bathroom", i),
-      x: stairX, y: wcStairY + (i - startWcIdx) * 2.0,
-      width: stairW, depth: r2(Math.min(2.0, wcSpaceD)), floor: f,
+      id: `f${f}_wc${i}`, type: "bathroom", name: `WC ${i + 1}`,
+      x: r2(i % 2 === 0 ? 0 : wcW), y, width: wcW, depth: wcH, floor: f,
     });
+    if (i % 2 === 1 || i === wcCount - 1) y += wcH;
   }
 
-  // ── Special rooms ────────────────────────────────────────────────────
+  // ── Other special rooms (not shaft, not garage) ────────────────
   for (let si = 0; si < detail.special.length; si++) {
+    if (si === shaftIdx && shaftPlaced) continue;
     const sp   = detail.special[si];
     const type = specialToType(sp);
-    const spD  = type === "terrace" ? 5.0 : 3.0;
-    const spW  = type === "shaft" ? r2(stairW) : usableW;
-    const spX  = type === "shaft" ? stairX     : 0;
+    if (type === "shaft") continue; // handled above
+    const remainD = r2(stairY - y);
+    if (remainD < 1.0) break;
+    const spH = r2(clamp(type === "terrace" ? 5.0 : 3.0, 1.0, remainD));
     rooms.push({
       id: `f${f}_sp${si}`, type, name: ROOM_NAME_MAP[type] ?? type,
-      x: spX, y, width: spW, depth: spD, floor: f,
+      x: 0, y, width: usableW, depth: spH, floor: f,
     });
-    if (type !== "shaft") y += spD;
+    y += spH;
   }
 
-  void bw;
+  void bw; void bd;
   return rooms;
 }
 
-/** Compute buildable footprint from project info + rules. */
-function calcFootprint(input: LayoutSkillInput): Footprint {
-  const pi = input.projectInfo;
-  const lr = input.requirements.layoutRules;
-  const frontS  = lr.frontSetback  ?? 4.5;
-  const rearS   = lr.rearSetback   ?? 2.0;
-  const leftS   = lr.leftSetback   ?? 0;
-  const rightS  = lr.rightSetback  ?? 0;
-  const walls2  = EXTERIOR_WALL_THICKNESS * 2;
+// ── Footprint calculation ──────────────────────────────────────────────────────
 
+function calcFootprint(input: LayoutSkillInput): Footprint {
+  const pi   = input.projectInfo;
+  const lr   = input.requirements.layoutRules;
+  const walls2 = EXTERIOR_WALL_THICKNESS * 2;
   return {
-    width: Math.max(1, pi.lotWidth  - leftS - rightS - walls2),
-    depth: Math.max(1, pi.lotDepth  - frontS - rearS  - walls2),
+    width: Math.max(1, r2(pi.lotWidth - (lr.leftSetback ?? 0) - (lr.rightSetback ?? 0) - walls2)),
+    depth: Math.max(1, r2(pi.lotDepth - (lr.frontSetback ?? 4.5) - (lr.rearSetback ?? 2.0) - walls2)),
   };
 }
 
-/** Main entry: plan all floors. */
+// ── Main entry ────────────────────────────────────────────────────────────────
+
 export function planRawLayout(
   input:  LayoutSkillInput,
   bundle: LayoutRuleBundle,
@@ -260,11 +273,11 @@ export function planRawLayout(
   const stType = lr.stairType ?? DEFAULT_STAIR_TYPE;
   const stPre  = STAIR_PRESETS[stType];
 
-  // Stair core: right column, placed toward the rear
   const stairW = stPre.width;
   const stairD = stPre.depth;
-  const stairX = r2(Math.max(0, fp.width - stairW));
-  const stairY = r2(Math.max(0, fp.depth - stairD));
+  // Place stair at rear-right corner
+  const stairX = r2(Math.max(0, fp.width  - stairW));
+  const stairY = r2(Math.max(0, fp.depth  - stairD));
 
   const floors: PlannedFloor[] = input.floorDetails.map((detail) => {
     const isGround  = detail.floor === 0;
@@ -277,7 +290,6 @@ export function planRawLayout(
     return { floor: detail.floor, floorName: detail.name, rooms };
   });
 
-  void bundle; // bundle used for future AI integration
-
+  void bundle;
   return { floors };
 }

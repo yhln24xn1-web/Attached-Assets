@@ -153,3 +153,37 @@ export interface WizardData {
   references:       ReferencesFormValues | null;
   chatRequirements: Step2ChatOutput | null;
 }
+
+// ── Step 3 — Layout Result ────────────────────────────────────────────────────
+
+export interface GeomRoom {
+  id:      string;
+  type:    string;
+  name:    string;
+  x:       number;
+  y:       number;
+  width:   number;
+  height:  number;
+  area:    number;
+  isFixed?: boolean;
+}
+
+export interface LayoutRoom {
+  name: string;
+  type: string;
+  area: number;
+}
+
+export interface LayoutFloor {
+  floor:     number;
+  floorName: string;
+  rooms:     LayoutRoom[];
+  geometry:  GeomRoom[];
+}
+
+export interface LayoutResult {
+  jobId:          number;
+  buildableWidth: number;
+  buildableDepth: number;
+  floors:         LayoutFloor[];
+}
